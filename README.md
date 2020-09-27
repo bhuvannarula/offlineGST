@@ -1,6 +1,8 @@
 <img src='/images/logo.png' width=210px height=65px>
 <i><p style='font-size:10'>Offline GSTR-1 Utility with Invoice Management</p></i>
 
+<img src='/images/homepage.png' width=339px, height=347px>
+
 # What is this Utility?
 This is an offline utility in which user can manage <u>various companies at a time</u>, entering their <u>sales invoices</u> which are then <u>automatically summarised for uploading to GST website</u>
 
