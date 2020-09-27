@@ -25,9 +25,7 @@ csv will be used in place of openpyxl to improve compatibility and efficiency.
 '''
 
 # Enter the path to the serverBackupScript.py on your server
-#path_to_server_script = 'enter_path_here'
-path_to_server_script = 'https://developer.bhuvannarula.cf/offlinegst/cgi-bin/5b057c8c23a641e9.py'
-
+path_to_server_script = 'enter_path_here'
 
 def get_companyDirectory():
     if not os.path.isdir('companies'):
@@ -609,16 +607,22 @@ def action_perform(todoAction):
         addNewInvoice()
     elif todoAction == 'Delete Invoice(s)':
         invNums = simpledialog.askstring('Delete Invoice(s)','Enter Invoice Numbers of Invoices to be deleted, separated by "," like 100,200,300')
-        deleteInvoice(invNums)
+        if not invNums in ('',None,'None'):
+            deleteInvoice(invNums)
         back_to_menu()
     elif todoAction == 'Modify Invoice':
         while True:
             invNumModify = simpledialog.askstring('Modify Invoice','Enter Invoice Number of Invoice to be modified:')
-            if invNumModify not in pastInvoices:
+            if invNumModify == None:
+                break
+            elif invNumModify not in pastInvoices:
                 invNumModify = simpledialog.askstring('Not Found!','Invoice Number entered is not present. Please enter correct number.')
             else:
                 break
-        addNewInvoice(modify=invNumModify)
+        if invNumModify == None:
+            back_to_menu()
+        else:
+            addNewInvoice(modify=invNumModify)
     elif todoAction == 'Export Invoices':
         resp1 = messagebox._show('Are you sure?','The invoices will be exported. Are you sure you want to continue?',_icon='info',_type=messagebox.YESNO)
         if resp1.lower() in ('yes','y'):
