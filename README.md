@@ -29,15 +29,17 @@ The program has two parts:
 
 	- If restore is selected, user is authenticated, and restore command is sent to server. Upon receiving data from server, the data is decoded and added to the corresponding months.
 - ### Server-End:
-	- It handles the backup back-end for application
+	- It handles the backup back-end for application.
 
 	- A table is present which contains the credentials  (userid, pass, table name) for authenticating user
 
-	- A single table is made for a user in MYSQL to store data
+    - A table is present which contains the details of ongoing sessions of uploading data
+
+	- A single table is created for every username registered.
 
 	- Server has a python script running which receives data, authenticates it, decodes it, finds the table and updates/adds the data to the MYSQL table using MYSQL queries and mysql-connector module for python.
 
-	- If the server receives Restore command, the user is first authenticated, and if successful, the data for the requested months is extracted from the MYSQL database, encoded and sent back to the user application.
+	- If the server receives Restore command, the user is first authenticated, and if successful, the data for the requested months is extracted from the MYSQL database, and sent back to the user application.
 
 ## Extra Features included in Utility:
 - If adding many bills in one go, user can select ‘Add Another Invoice’ in pop-up after adding an invoice, and the new form will contain date of previous invoice and auto-incremented invoice number (increments ‘A001’ to ‘A002’)
