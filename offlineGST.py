@@ -207,14 +207,19 @@ def get_current_month_summary():
         data_summary[2]+=round(float(item[8])*float(item[7])/100,2)
         data_summary[3]+=round(float(item[9]),2)
     data_summary[0] = len(set(pastInvoices))
+    pastInvoices.sort(key = lambda var : int(re.search('([0-9]+)$',var).groups()[0]))
     return data_summary
 
 def addNewInvoice(modify=False,reset=False):
     currInvNum = tk.StringVar()
     currInvDate = tk.StringVar()
     if len(pastInvoices) != 0:
-        temp11 = re.search('([1-9]{1}[0-9]*)$',pastInvoices[-1]).groups()[0]
-        currInvNum.set(pastInvoices[-1].split(temp11)[0]+str(int(temp11)+1))
+        temp11 = re.search('[A-Z]+[0]*([1-9]{1}[0-9]*)$',pastInvoices[-1]).groups()[0]
+        temp11_2 = fullmatch('([9]+)$',temp11).groups()[0]
+        if temp11_2 and pastInvoices[-1][-len(temp11_2)-1] == '0':
+            currInvNum.set(pastInvoices[-1][:-len(temp11_2)-1] + '1' + '0'*len(temp11_2))
+        else :
+            currInvNum.set(pastInvoices[-1].split(temp11)[0]+str(int(temp11)+1))
         #currInvNum.set(pastInvoices[-1][:-1]+str(int(pastInvoices[-1][-1])+1))
         currInvDate.set(invoiceNumDateDict[pastInvoices[-1]])
     partyGSTIN = tk.StringVar()
@@ -304,7 +309,7 @@ def addNewInvoice(modify=False,reset=False):
             foundGSTIN = check_GSTIN(partyGSTIN.get())
             if foundGSTIN:
                 partyName.set(foundGSTIN)
-                entry_8.insert('0',foundGSTIN)
+                #entry_8.insert('0',foundGSTIN)
     entry_7.config(textvariable=partyGSTIN, width='15')
     entry_7.bind('<FocusOut>',autopartyname)
     entry_7.pack(anchor='w', side='top')
@@ -655,10 +660,10 @@ def action_perform(todoAction):
                         back_to_menu()
                     respregisternew = registerNewUserCloud(credd_user,credd_pass)
                     if respregisternew:
-                        messagebox.showinfo('Success!','New User registered successfully!')
+                        messagebox.showinfo('Success!','New User registered successfully! Now choose Login during backup!')
                     else:
                         messagebox.showerror('Failed!','New User Registeration failed!')
-                        back_to_menu()
+                    back_to_menu()
                 else:
                     kk = False
                     while True:
