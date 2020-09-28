@@ -12,7 +12,7 @@ Following files and folders are present in same directory as this file:
 
 - .env
 
-Following tables are present in the working database:
+Following tables will be created in the working database:
 masterminds
 current_sessions
 spcookies
@@ -23,10 +23,10 @@ print('Content-type: text/html\n')
 ENVV = dotenv_values()
 
 connection = conn.connect(
-    host = ENVV['WORLD'],
-    user = ENVV['MASTER'],
-    passwd = ENVV['ASSISTANT'],
-    database = ENVV['STUDENT']
+    host = ENVV['HOSTNAME'],
+    user = ENVV['USERNAME'],
+    passwd = ENVV['PASSWORD'],
+    database = ENVV['DATABASE']
     )
 
 mCursor = connection.cursor()
