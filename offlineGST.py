@@ -28,7 +28,8 @@ v3 - changelog
 '''
 
 # Enter the path to the serverBackupScript.py on your server
-path_to_server_script = 'enter_path_here'
+#path_to_server_script = 'enter_path_here'
+path_to_server_script = 'https://developer.bhuvannarula.cf/offlinegst/cgi-bin/serverBackupScript.py'
 
 def get_companyDirectory():
     if not os.path.isdir('companies'):
@@ -87,7 +88,7 @@ def backupMain(companyName,filingPeriod,hashed=False,username=None,password=None
     companyGSTINfile.close()   
     
     def initialiseCSVdata():
-        csvFileIN = open('companies/{}/{}/gstr1.csv'.format(companyName,filingPeriod),'r',newline='')
+        csvFileIN = open('companies/{}/{}/GSTR1.csv'.format(companyName,filingPeriod),'r',newline='')
         csvFileReader = csv.reader(csvFileIN)
         next(csvFileReader)
         nestedTuple = tuple()
@@ -178,7 +179,7 @@ def restoreMain(companyName,filingPeriod,hashed=False,username=None,password=Non
                 raise ValueError
         except:
             return ['Authentication Failed/ Data Corrupt!']
-    fileOUT = open('companies/{}/{}/gstr1.csv'.format(companyName,filingPeriod),'w',newline='')
+    fileOUT = open('companies/{}/{}/GSTR1.csv'.format(companyName,filingPeriod),'w',newline='')
     csvFinalWriter = csv.writer(fileOUT)
     headerRow = ['GSTIN','Receiver Name','Invoice Number','Invoice Date','Invoice Value','Place Of Supply','Invoice Type','Rate','Taxable Amount','Cess Amount']
     csvFinalWriter.writerow(headerRow)
@@ -196,7 +197,7 @@ def restoreMain(companyName,filingPeriod,hashed=False,username=None,password=Non
 
 def get_current_month_summary():
     global pastInvoices,invoiceNumDateDict
-    csvfileIn = open('companies/{}/{}/gstr1.csv'.format(cName,sMonth),'r',newline='')
+    csvfileIn = open('companies/{}/{}/GSTR1.csv'.format(cName,sMonth),'r',newline='')
     tempReader = csv.reader(csvfileIn)
     next(tempReader,None)
     data_summary = [0,0,0,0] #Total Invoices, Total Taxbl Val, Total Tax, Total Cess
@@ -248,7 +249,7 @@ def addNewInvoice(modify=False,reset=False):
     button_5 = tk.Button(frame_16)
     if modify:
         label_13.config(text='Modify Old Invoice:')
-        csvFileIn = open('companies/{}/{}/gstr1.csv'.format(cName,sMonth),'r+',newline='')
+        csvFileIn = open('companies/{}/{}/GSTR1.csv'.format(cName,sMonth),'r+',newline='')
         csvReaderData = list(csv.reader(csvFileIn))
         taxSeq = ['0','5','12','18','28']
         csvFileIn.seek(0)
@@ -390,7 +391,7 @@ def addNewInvoice(modify=False,reset=False):
         messagebox.showerror('Wrong Input!',message)
 
     def push_data_to_excel(invNum,invDate,partyGSTIN,partyName,taxamountlists):
-        csvFileIn = open('companies/{}/{}/gstr1.csv'.format(cName,sMonth),'a+',newline='')
+        csvFileIn = open('companies/{}/{}/GSTR1.csv'.format(cName,sMonth),'a+',newline='')
         csvWriter = csv.writer(csvFileIn)
         taxSeq = ['0','5','12','18','28']
         totalInvValue = sum(list((100+float(taxSeq[i[0]]))*float(i[1])/100 for i in enumerate(taxamountlists)))
@@ -465,7 +466,7 @@ def deleteInvoice(invNums):
     if confirmresp.lower() not in ('yes','y'):
         return False
     invNums=(invNums.replace(' ','')).split(',')
-    csvFileIn = open('companies/{}/{}/gstr1.csv'.format(cName,sMonth),'r+',newline='')
+    csvFileIn = open('companies/{}/{}/GSTR1.csv'.format(cName,sMonth),'r+',newline='')
     csvReader = csv.reader(csvFileIn)
     csvReaderList = []
     for item in csvReader:
@@ -480,7 +481,7 @@ def deleteInvoice(invNums):
     return True
 
 def exportInvoices():
-    csvFileIn = open('companies/{}/{}/gstr1.csv'.format(cName,sMonth),newline='')
+    csvFileIn = open('companies/{}/{}/GSTR1.csv'.format(cName,sMonth),newline='')
     csvFileReader = list(csv.reader(csvFileIn))
     csvFileReader = csvFileReader[1:]
     b2bdata = []
@@ -829,8 +830,8 @@ def initialiseCompany(cName,sMonth):
         return False
     if not os.path.isdir(os.getcwd()+'/companies/{}/{}'.format(cName,sMonth)):
         os.mkdir(os.getcwd()+'/companies/{}/{}'.format(cName,sMonth))
-    if not os.path.isfile('companies/{}/{}/gstr1.csv'.format(cName,sMonth)):
-        tempCSVFileIn = open('companies/{}/{}/gstr1.csv'.format(cName,sMonth),'w',newline='')
+    if not os.path.isfile('companies/{}/{}/GSTR1.csv'.format(cName,sMonth)):
+        tempCSVFileIn = open('companies/{}/{}/GSTR1.csv'.format(cName,sMonth),'w',newline='')
         tempWriter = csv.writer(tempCSVFileIn)
         headerRow = ['GSTIN','Receiver Name','Invoice Number','Invoice Date','Invoice Value','Place Of Supply','Invoice Type','Rate','Taxable Amount','Cess Amount']
         tempWriter.writerow(headerRow)
