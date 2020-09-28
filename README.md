@@ -5,6 +5,8 @@
 
 ##### For support email at support@developer.bhuvannarula.cf
 
+##### For demo (and if you want), if you run program, your data will be Backed Up to my server (no one will touch it). To change the server, read instructions below.
+
 # What is this Utility?
 This is an offline utility in which user can manage <u>various companies at a time</u>, entering their <u>sales invoices</u> which are then <u>automatically summarised for uploading to GST website</u>
 
