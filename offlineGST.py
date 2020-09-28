@@ -21,6 +21,9 @@ from urllib3 import PoolManager
 v2 - changelog
 csv will be used in place of openpyxl to improve compatibility and efficiency.
 
+v3 - changelog
+- added backup and restore option
+- fixed bugs
 
 '''
 
@@ -191,7 +194,6 @@ def restoreMain(companyName,filingPeriod,hashed=False,username=None,password=Non
 # backup and restore functions end here -->
 
 
-
 def get_current_month_summary():
     global pastInvoices,invoiceNumDateDict
     csvfileIn = open('companies/{}/{}/gstr1.csv'.format(cName,sMonth),'r',newline='')
@@ -309,7 +311,8 @@ def addNewInvoice(modify=False,reset=False):
             foundGSTIN = check_GSTIN(partyGSTIN.get())
             if foundGSTIN:
                 partyName.set(foundGSTIN)
-                #entry_8.insert('0',foundGSTIN)
+                entry_8.delete('0','end') # added this as updating partyName sometimes does not show up in text box
+                entry_8.insert('0',foundGSTIN)
     entry_7.config(textvariable=partyGSTIN, width='15')
     entry_7.bind('<FocusOut>',autopartyname)
     entry_7.pack(anchor='w', side='top')
@@ -554,8 +557,6 @@ def exportInvoices():
 
     ### b2b to json ends here
 
-
-    #print(str(b2bObject))
 
     ### b2cs to json starts here
     b2csfinaldata = []
