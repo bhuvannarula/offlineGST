@@ -3,6 +3,8 @@
 
 <img src='/images/homepage.png' width=339px, height=347px>
 
+##### For support email at support@developer.bhuvannarula.cf
+
 # What is this Utility?
 This is an offline utility in which user can manage <u>various companies at a time</u>, entering their <u>sales invoices</u> which are then <u>automatically summarised for uploading to GST website</u>
 
@@ -14,6 +16,21 @@ This is an offline utility in which user can manage <u>various companies at a ti
 - Easy to use, only necessary options are present
 - Data stored locally in form of .CSV file (for offline browsing and easy access), as well as on <u>cloud storage in mysql database</u> (for backup and restore purpose)
 - Generates <u>.JSON file</u> which can be directly uploaded to GST Website.
+
+# How to set up?
+
+- ### 1) Setting up Databases
+	- Create a database on your server
+	- Update the credentials of your database in '.env' file in 'serverScript/' folder
+	- Run the 'initialiseServerDatabase.py' locally, which will remotely create tables required in your database
+- ### 2) Setting up Server Script
+	- Now, change the 'HOSTNAME' in '.env' file to 'localhost'
+	- Upload '.env' & 'serverBackupScript.py' to your server. Both files should be in same directory.
+	- Make sure '.env' extension is added to hotlink protection in your server configuration, and '.py' extension to cgi scripts list
+- ### 3) Setting up Client Program
+	- Replace value of 'path_to_server_script' in 'offlineGST.py' script with the path of the script uploaded (eg: 'https://domain.com/demo/serverBackupScript.py')
+	- Now run program and it should work now.
+
 
 # How does it work?
 The program has two parts:
