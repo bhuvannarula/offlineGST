@@ -36,8 +36,8 @@ v3.0.1
 path_to_server_script = 'https://developer.bhuvannarula.cf/offlinegst/cgi-bin/serverBackupScript.py'
 
 def get_companyDirectory():
-    if not os.path.isdir('companies'):
-        os.mkdir('companies')
+    if not os.path.isdir(os.getcwd()+'/companies'):
+        os.mkdir(os.getcwd()+'/companies')
     companyDirectory1=list(os.listdir(os.getcwd()+'/companies/'))
     companyDirectory = list(item for item in companyDirectory1 if item[0] != '.')
     return companyDirectory
@@ -57,7 +57,10 @@ def check_GSTIN(GSTIN):
     webopener = request.urlopen('https://cleartax.in/f/compliance-report/{}/'.format(GSTIN))
     #response_gstin_tradename = webopener.request('GET','https://cleartax.in/f/compliance-report/{}/'.format(GSTIN)).data
     response_gstin_tradename= json.loads(webopener.read())
-    response_gstin_tradename = response_gstin_tradename['taxpayerInfo']['tradeNam']
+    try:
+        response_gstin_tradename = response_gstin_tradename['taxpayerInfo']['tradeNam']
+    except:
+        return False
     if response_gstin_tradename == 'null':
         return False
     else:
@@ -79,20 +82,20 @@ def backupMain(companyName,filingPeriod,hashed=False,username=None,password=None
     if not hashed:
         password = sha256(password.encode('ascii')).hexdigest()
     else:
-        cookiesFileIN = open('.savedCred','rb')
+        cookiesFileIN = open(os.getcwd()+'/.savedCred','rb')
         username,password = pickle.load(cookiesFileIN)
         cookiesFileIN.close()
     if rememberMe:
-        cookiesFileIN = open('.savedCred','wb')
+        cookiesFileIN = open(os.getcwd()+'/.savedCred','wb')
         pickle.dump((username,password),cookiesFileIN)
         cookiesFileIN.close()
     
-    companyGSTINfile = open('companies/{}/.COMPANY_GSTIN'.format(companyName),'r')
+    companyGSTINfile = open(os.getcwd()+'/companies/{}/.COMPANY_GSTIN'.format(companyName),'r')
     companyGSTIN = companyGSTINfile.read(15)
     companyGSTINfile.close()   
     
     def initialiseCSVdata():
-        csvFileIN = open('companies/{}/{}/GSTR1.csv'.format(companyName,filingPeriod),'r',newline='')
+        csvFileIN = open(os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(companyName,filingPeriod),'r',newline='')
         csvFileReader = csv.reader(csvFileIN)
         next(csvFileReader)
         nestedTuple = tuple()
@@ -157,14 +160,14 @@ def restoreMain(companyName,filingPeriod,hashed=False,username=None,password=Non
     if not hashed:
         password = sha256(password.encode('ascii')).hexdigest()
     else:
-        cookiesFileIN = open('.savedCred','rb')
+        cookiesFileIN = open(os.getcwd()+'/.savedCred','rb')
         username,password = pickle.load(cookiesFileIN)
         cookiesFileIN.close()
     if rememberMe:
-        cookiesFileIN = open('.savedCred','wb')
+        cookiesFileIN = open(os.getcwd()+'/.savedCred','wb')
         pickle.dump((username,password),cookiesFileIN)
         cookiesFileIN.close()
-    companyGSTIN = open('companies/{}/.COMPANY_GSTIN'.format(companyName),'r').read(15)
+    companyGSTIN = open(os.getcwd()+'/companies/{}/.COMPANY_GSTIN'.format(companyName),'r').read(15)
     restoreAuthen = browser.request('POST',path_to_server_script,
                                     fields={'getback':'True',
                                             'mastermindname':username,
@@ -183,7 +186,7 @@ def restoreMain(companyName,filingPeriod,hashed=False,username=None,password=Non
                 raise ValueError
         except:
             return ['Authentication Failed/ Data Corrupt!']
-    fileOUT = open('companies/{}/{}/GSTR1.csv'.format(companyName,filingPeriod),'w',newline='')
+    fileOUT = open(os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(companyName,filingPeriod),'w',newline='')
     csvFinalWriter = csv.writer(fileOUT)
     headerRow = ['GSTIN','Receiver Name','Invoice Number','Invoice Date','Invoice Value','Place Of Supply','Invoice Type','Rate','Taxable Amount','Cess Amount']
     csvFinalWriter.writerow(headerRow)
@@ -201,7 +204,7 @@ def restoreMain(companyName,filingPeriod,hashed=False,username=None,password=Non
 
 def get_current_month_summary():
     global pastInvoices,invoiceNumDateDict, pastGSTIN
-    csvfileIn = open('companies/{}/{}/GSTR1.csv'.format(cName,sMonth),'r',newline='')
+    csvfileIn = open(os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName,sMonth),'r',newline='')
     tempReader = csv.reader(csvfileIn)
     next(tempReader,None)
     data_summary = [0,0,0,0] #Total Invoices, Total Taxbl Val, Total Tax, Total Cess
@@ -254,7 +257,7 @@ def addNewInvoice(modify=False,reset=False):
     button_5 = tk.Button(frame_16)
     if modify:
         label_13.config(text='Modify Old Invoice:')
-        csvFileIn = open('companies/{}/{}/GSTR1.csv'.format(cName,sMonth),'r+',newline='')
+        csvFileIn = open(os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName,sMonth),'r+',newline='')
         csvReaderData = list(csv.reader(csvFileIn))
         taxSeq = ['0','5','12','18','28']
         csvFileIn.seek(0)
@@ -403,7 +406,7 @@ def addNewInvoice(modify=False,reset=False):
         messagebox.showerror('Wrong Input!',message)
 
     def push_data_to_excel(invNum,invDate,partyGSTIN,partyName,taxamountlists):
-        csvFileIn = open('companies/{}/{}/GSTR1.csv'.format(cName,sMonth),'a+',newline='')
+        csvFileIn = open(os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName,sMonth),'a+',newline='')
         csvWriter = csv.writer(csvFileIn)
         taxSeq = ['0','5','12','18','28']
         totalInvValue = sum(list((100+float(taxSeq[i[0]]))*float(i[1])/100 for i in enumerate(taxamountlists)))
@@ -479,7 +482,7 @@ def deleteInvoice(invNums):
     if confirmresp.lower() not in ('yes','y'):
         return False
     invNums=(invNums.replace(' ','')).split(',')
-    csvFileIn = open('companies/{}/{}/GSTR1.csv'.format(cName,sMonth),'r+',newline='')
+    csvFileIn = open(os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName,sMonth),'r+',newline='')
     csvReader = csv.reader(csvFileIn)
     csvReaderList = []
     for item in csvReader:
@@ -494,7 +497,7 @@ def deleteInvoice(invNums):
     return True
 
 def exportInvoices():
-    csvFileIn = open('companies/{}/{}/GSTR1.csv'.format(cName,sMonth),newline='')
+    csvFileIn = open(os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName,sMonth),newline='')
     csvFileReader = list(csv.reader(csvFileIn))
     csvFileReader = csvFileReader[1:]
     b2bdata = []
@@ -617,7 +620,7 @@ def exportInvoices():
     finalJSON['version'] = 'GST1.00'
     
     randomIdentifier = randrange(10000,100000)
-    JSONfile = open('export/export-json-{}-{}-{}.json'.format(cName,sMonth,randomIdentifier),'w')
+    JSONfile = open(os.getcwd()+'/export/export-json-{}-{}-{}.json'.format(cName,sMonth,randomIdentifier),'w')
     json.dump(finalJSON,JSONfile)
     JSONfile.close()
     return True
@@ -718,7 +721,7 @@ def action_perform(todoAction):
     elif todoAction == 'Restore Invoices':
         messagebox._show('Caution','The invoices of selected period will be restored from cloud.',_icon='info',_type=messagebox.OK)
         if True:
-            if not os.path.isfile('.savedCred'):
+            if not os.path.isfile(os.getcwd()+'/.savedCred'):
                 respRegister = messagebox.askyesno('Login/Register','Do you want to login or register?\n(Click Yes to Login, Click No to Register)')
                 
                 if not respRegister:
