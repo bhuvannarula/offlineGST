@@ -25,6 +25,8 @@ csv will be used in place of openpyxl to improve compatibility and efficiency.
 v3 - changelog
 - added backup and restore option
 - fixed bugs
+
+v3.0.2
 - added autocomplete GSTIN from dropdown
 
 '''
