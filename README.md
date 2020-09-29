@@ -66,6 +66,8 @@ The program has two parts:
 
 - While entering GSTIN number of Party in New Invoice Form, if data connection is available, the Party Name is auto-fetched and updated in the Party Name Input Box
 
+- User can select GSTIN from filtered results of past GSTINs through dropdown. As user enters part of GSTIN, GSTINs from past matching the partial GSTIN entered are shown in dropdown.
+
 - While deleting invoices, you can give multiple invoice numbers separated by comma (‘,’) to delete multiple invoices.
 
 - In Backup option, the user can select his own UserID and Pass for authenticating, and user can select ‘Remember Me’ to save his credentials on his device locally (incase the program folder gets deleted, the saved credentials are deleted too!)
