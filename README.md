@@ -16,7 +16,8 @@ This is an offline utility in which user can manage <u>various companies at a ti
 	- Compatible with all platforms that support Python
 	- Recommended for Python >= 3.6 (tested successfully on 3.8)
 - Easy to use, only necessary options are present
-- Data stored locally in form of .CSV file (for offline browsing and easy access), as well as on <u>cloud storage in mysql database</u> (for backup and restore purpose)
+- <u>User can select GSTIN from list of already entered GSTIN through drop-down</u>, and Party Name will automatically be fetched on lost focus.
+- Data stored locally in form of .CSV file (for offline browsing and easy access), as well as on <u>cloud storage in mysql database</u> (for backup and restore purpose).
 - Generates <u>.JSON file</u> which can be directly uploaded to GST Website.
 
 # How to set up?
