@@ -5,6 +5,8 @@
 
 ##### For support email at support@developer.bhuvannarula.cf
 
+##### The program might seem to hang sometimes, don't worry, it is working, give it some time
+
 ##### For demo (and if you want), if you run program, your data will be Backed Up to my server (no one will touch it). To change the server, read instructions below.
 
 # What is this Utility?
