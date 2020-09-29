@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import simpledialog
+from tkinter import ttk
 import os
 import re
 from functools import partial
@@ -24,6 +25,7 @@ csv will be used in place of openpyxl to improve compatibility and efficiency.
 v3 - changelog
 - added backup and restore option
 - fixed bugs
+- added autocomplete GSTIN from dropdown
 
 '''
 
@@ -196,16 +198,17 @@ def restoreMain(companyName,filingPeriod,hashed=False,username=None,password=Non
 
 
 def get_current_month_summary():
-    global pastInvoices,invoiceNumDateDict
+    global pastInvoices,invoiceNumDateDict, pastGSTIN
     csvfileIn = open('companies/{}/{}/GSTR1.csv'.format(cName,sMonth),'r',newline='')
     tempReader = csv.reader(csvfileIn)
     next(tempReader,None)
     data_summary = [0,0,0,0] #Total Invoices, Total Taxbl Val, Total Tax, Total Cess
-    pastInvoices = []
+    pastInvoices,pastGSTIN = [],{}
     invoiceNumDateDict = {}
     for item in tempReader:
         pastInvoices.append(item[2])
         invoiceNumDateDict[item[2]] = item[3]
+        pastGSTIN[item[0]] = item[1]
         data_summary[1]+=round(float(item[8]),2)
         data_summary[2]+=round(float(item[8])*float(item[7])/100,2)
         data_summary[3]+=round(float(item[9]),2)
@@ -217,10 +220,10 @@ def addNewInvoice(modify=False,reset=False):
     currInvNum = tk.StringVar()
     currInvDate = tk.StringVar()
     if len(pastInvoices) != 0:
-        temp11 = re.search('[A-Z]+[0]*([1-9]{1}[0-9]*)$',pastInvoices[-1]).groups()[0]
-        temp11_2 = fullmatch('([9]+)$',temp11).groups()[0]
-        if temp11_2 and pastInvoices[-1][-len(temp11_2)-1] == '0':
-            currInvNum.set(pastInvoices[-1][:-len(temp11_2)-1] + '1' + '0'*len(temp11_2))
+        temp11 = re.search('[0]*([1-9]{1}[0-9]*)$',pastInvoices[-1]).groups()[0]
+        temp11_2 = fullmatch('([9]+)$',temp11)
+        if temp11_2 and pastInvoices[-1][-len(temp11_2.groups()[0])-1] == '0':
+            currInvNum.set(pastInvoices[-1][:-len(temp11_2.groups()[0])-1] + '1' + '0'*len(temp11_2.groups()[0]))
         else :
             currInvNum.set(pastInvoices[-1].split(temp11)[0]+str(int(temp11)+1))
         #currInvNum.set(pastInvoices[-1][:-1]+str(int(pastInvoices[-1][-1])+1))
@@ -304,17 +307,24 @@ def addNewInvoice(modify=False,reset=False):
     label_19 = tk.Label(frame_6)
     label_19.config(text='Party GSTIN:')
     label_19.pack(anchor='w', side='left')
-    entry_7 = tk.Entry(frame_6)
+    entry_7 = ttk.Combobox(frame_6,width=15,textvariable=partyGSTIN)
     frame_7_8 = tk.Frame(frame_3)
     entry_8 = tk.Entry(frame_7_8)
     def autopartyname(event):
-        if event.widget==entry_7 and re.fullmatch('[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{3}',partyGSTIN.get()):
+        if event.widget==entry_7 and partyGSTIN.get() in pastGSTIN:
+            partyName.set(pastGSTIN[partyGSTIN.get()])
+            entry_8.delete('0','end')
+            entry_8.insert('0',pastGSTIN[partyGSTIN.get()])
+        elif event.widget==entry_7 and re.fullmatch('[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{3}',partyGSTIN.get()):
             foundGSTIN = check_GSTIN(partyGSTIN.get())
             if foundGSTIN:
                 partyName.set(foundGSTIN)
                 entry_8.delete('0','end') # added this as updating partyName sometimes does not show up in text box
                 entry_8.insert('0',foundGSTIN)
-    entry_7.config(textvariable=partyGSTIN, width='15')
+    def listGSTIN():
+        temp111 = list(i for i in pastGSTIN if re.search(partyGSTIN.get(),i))
+        entry_7['values'] = temp111
+    entry_7.config(postcommand=listGSTIN)
     entry_7.bind('<FocusOut>',autopartyname)
     entry_7.pack(anchor='w', side='top')
     frame_6.config(height='200', width='200')
@@ -399,6 +409,7 @@ def addNewInvoice(modify=False,reset=False):
             if taxItem[1] != 0:
                 pastInvoices.append(invNum.get())
                 invoiceNumDateDict[invNum.get()] = invDate.get()
+                pastGSTIN[partyGSTIN.get()] = partyName.get()
                 csvWriter.writerow([partyGSTIN.get(),partyName.get(),invNum.get(),invDate.get(),totalInvValue,get_placeofsupply(partyGSTIN.get()[:2]),'Regular',taxSeq[taxItem[0]],taxItem[1],'0.00'])
         csvFileIn.flush()
         csvFileIn.close()
