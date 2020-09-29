@@ -33,7 +33,7 @@ v3.0.1
 
 # Enter the path to the serverBackupScript.py on your server
 #path_to_server_script = 'enter_path_here'
-path_to_server_script = 'https://developer.bhuvannarula.cf/offlinegst/cgi-bin/serverBackupScript.py'
+path_to_server_script = 'https://bhuvannarula.cf/offlinegst/cgi-bin/serverBackupScript.py'
 
 def get_companyDirectory():
     if not os.path.isdir(os.getcwd()+'/companies'):
