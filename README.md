@@ -3,7 +3,7 @@
 
 <img src='/images/homepage.png' width=339px, height=347px>
 
-##### For support email at support@developer.bhuvannarula.cf
+##### For support email at support@bhuvannarula.cf
 
 ##### The program might seem to hang sometimes, don't worry, it is working, give it some time
 
