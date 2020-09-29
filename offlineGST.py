@@ -26,7 +26,7 @@ v3 - changelog
 - added backup and restore option
 - fixed bugs
 
-v3.0.2
+v3.0.1
 - added autocomplete GSTIN from dropdown
 
 '''
