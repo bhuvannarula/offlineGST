@@ -9,7 +9,6 @@ from shutil import rmtree
 from urllib import request
 import json
 import csv
-from random import randrange
 
 from hashlib import sha256
 from math import ceil
@@ -28,6 +27,11 @@ v3 - changelog
 
 v3.0.1
 - added autocomplete GSTIN from dropdown
+
+v3.0.2
+- removed random identifier from name of .JSON file exported
+- fixed issue where modified bill won't save
+- GSTIN entered will be entered into .PAST_GSTINS file, which wil be referred to in all months of selected company
 
 '''
 
@@ -203,17 +207,18 @@ def restoreMain(companyName,filingPeriod,hashed=False,username=None,password=Non
 
 
 def get_current_month_summary():
-    global pastInvoices,invoiceNumDateDict, pastGSTIN
+    global pastInvoices,invoiceNumDateDict #pastGSTIN
     csvfileIn = open(os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName,sMonth),'r',newline='')
     tempReader = csv.reader(csvfileIn)
     next(tempReader,None)
     data_summary = [0,0,0,0] #Total Invoices, Total Taxbl Val, Total Tax, Total Cess
-    pastInvoices,pastGSTIN = [],{}
+    pastInvoices = []
+    #pastGSTIN = {}
     invoiceNumDateDict = {}
     for item in tempReader:
         pastInvoices.append(item[2])
         invoiceNumDateDict[item[2]] = item[3]
-        pastGSTIN[item[0]] = item[1]
+        #pastGSTIN[item[0]] = item[1]
         data_summary[1]+=round(float(item[8]),2)
         data_summary[2]+=round(float(item[8])*float(item[7])/100,2)
         data_summary[3]+=round(float(item[9]),2)
@@ -268,6 +273,8 @@ def addNewInvoice(modify=False,reset=False):
             if item[2] == modify:
                 taxabledatalist_for_modify[taxSeq.index(item[7])] = item[8]
                 datalist_for_modify = item[:4]
+                pastInvoices.remove(item[2])
+                del invoiceNumDateDict[item[2]]
             else:
                 final_csv_before_addmodify.append(item)
         currInvNum.set(datalist_for_modify[2])
@@ -316,10 +323,10 @@ def addNewInvoice(modify=False,reset=False):
     frame_7_8 = tk.Frame(frame_3)
     entry_8 = tk.Entry(frame_7_8)
     def autopartyname(event):
-        if event.widget==entry_7 and partyGSTIN.get() in pastGSTIN:
-            partyName.set(pastGSTIN[partyGSTIN.get()])
+        if event.widget==entry_7 and partyGSTIN.get() in tempPASTGSTIN:
+            partyName.set(tempPASTGSTIN[partyGSTIN.get()])
             entry_8.delete('0','end')
-            entry_8.insert('0',pastGSTIN[partyGSTIN.get()])
+            entry_8.insert('0',tempPASTGSTIN[partyGSTIN.get()])
         elif event.widget==entry_7 and re.fullmatch('[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{3}',partyGSTIN.get()):
             foundGSTIN = check_GSTIN(partyGSTIN.get())
             if foundGSTIN:
@@ -327,7 +334,7 @@ def addNewInvoice(modify=False,reset=False):
                 entry_8.delete('0','end') # added this as updating partyName sometimes does not show up in text box
                 entry_8.insert('0',foundGSTIN)
     def listGSTIN():
-        temp111 = list(i for i in pastGSTIN if re.search(partyGSTIN.get(),i))
+        temp111 = list(i for i in tempPASTGSTIN if re.search(partyGSTIN.get(),i))
         entry_7['values'] = temp111
     entry_7.config(postcommand=listGSTIN)
     entry_7.bind('<FocusOut>',autopartyname)
@@ -414,8 +421,14 @@ def addNewInvoice(modify=False,reset=False):
             if taxItem[1] != 0:
                 pastInvoices.append(invNum.get())
                 invoiceNumDateDict[invNum.get()] = invDate.get()
-                pastGSTIN[partyGSTIN.get()] = partyName.get()
+                #pastGSTIN[partyGSTIN.get()] = partyName.get()
                 csvWriter.writerow([partyGSTIN.get(),partyName.get(),invNum.get(),invDate.get(),totalInvValue,get_placeofsupply(partyGSTIN.get()[:2]),'Regular',taxSeq[taxItem[0]],taxItem[1],'0.00'])
+                tempPASTGSTIN[partyGSTIN.get()] = partyName.get()
+        
+        tempPASTGSTINfile = open(os.getcwd()+'/companies/{}/.PAST_GSTINS'.format(cName),'wb')
+        pickle.dump(tempPASTGSTIN,tempPASTGSTINfile)
+        tempPASTGSTINfile.close()
+        
         csvFileIn.flush()
         csvFileIn.close()
         return True
@@ -482,6 +495,12 @@ def deleteInvoice(invNums):
     if confirmresp.lower() not in ('yes','y'):
         return False
     invNums=(invNums.replace(' ','')).split(',')
+    notFound = []
+    for item in invNums:
+        if item not in pastInvoices:
+            notFound.append(item)
+    if notFound:
+        messagebox.showerror('Error!','Following invoices were not found: \n{}\nOther Invoices (if any) will be deleted.'.format(', '.join(notFound)))
     csvFileIn = open(os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName,sMonth),'r+',newline='')
     csvReader = csv.reader(csvFileIn)
     csvReaderList = []
@@ -619,8 +638,7 @@ def exportInvoices():
     finalJSON['hash'] = 'hash'
     finalJSON['version'] = 'GST1.00'
     
-    randomIdentifier = randrange(10000,100000)
-    JSONfile = open(os.getcwd()+'/export/export-json-{}-{}-{}.json'.format(cName,sMonth,randomIdentifier),'w')
+    JSONfile = open(os.getcwd()+'/export/export-json-{}-{}-gstr1.json'.format(cName,sMonth),'w')
     json.dump(finalJSON,JSONfile)
     JSONfile.close()
     return True
@@ -846,13 +864,29 @@ def initialiseCompany(cName,sMonth):
         return False
     if not os.path.isdir(os.getcwd()+'/companies/{}/{}'.format(cName,sMonth)):
         os.mkdir(os.getcwd()+'/companies/{}/{}'.format(cName,sMonth))
-    if not os.path.isfile('companies/{}/{}/GSTR1.csv'.format(cName,sMonth)):
-        tempCSVFileIn = open('companies/{}/{}/GSTR1.csv'.format(cName,sMonth),'w',newline='')
+    if not os.path.isfile(os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName,sMonth)):
+        tempCSVFileIn = open(os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName,sMonth),'w',newline='')
         tempWriter = csv.writer(tempCSVFileIn)
         headerRow = ['GSTIN','Receiver Name','Invoice Number','Invoice Date','Invoice Value','Place Of Supply','Invoice Type','Rate','Taxable Amount','Cess Amount']
         tempWriter.writerow(headerRow)
         tempCSVFileIn.close()
-    companyGSTIN = open('companies/{}/.COMPANY_GSTIN'.format(cName),'r',newline='').read().strip()
+    # store gstins into PAST_GSTINS file
+    global tempPASTGSTIN
+    if not os.path.isfile(os.getcwd()+'/companies/{}/.PAST_GSTINS'.format(cName)):
+        tempPASTGSTINfile = open(os.getcwd()+'/companies/{}/.PAST_GSTINS'.format(cName),'wb')
+        pickle.dump({},tempPASTGSTINfile)
+        tempPASTGSTIN = {}
+        tempPASTGSTINfile.close()
+    else:
+        tempPASTGSTINfile = open(os.getcwd()+'/companies/{}/.PAST_GSTINS'.format(cName),'rb+')
+        tempPASTGSTIN = pickle.load(tempPASTGSTINfile)
+        tempPASTGSTINfile.close()
+    '''
+    for item in templist:
+        tempfilein = open(os.getcwd()+'companies/{}/{}/GSTR1.csv'.format(cName,item),'r',newline='')
+        tempreader = csv.reader(tempfilein)
+    '''
+    companyGSTIN = open(os.getcwd()+'/companies/{}/.COMPANY_GSTIN'.format(cName),'r',newline='').read().strip()
     return True
 
 def createCompDir(cName,cGSTIN):
@@ -876,6 +910,9 @@ def createCompDir(cName,cGSTIN):
     fileGSTIN = open(os.getcwd()+'/companies/'+cName.get()+'/.COMPANY_GSTIN','w',newline='')
     fileGSTIN.write(cGSTIN)
     fileGSTIN.close()
+    fileGSTINS = open(os.getcwd()+'/companies/'+cName.get()+'/.PAST_GSTINS','wb',newline='')
+    pickle.dump({},fileGSTINS)
+    fileGSTINS.close()
     messagebox.showinfo('Success!','New Company successfully created!')
     back_to_homescreen(frame_1_2)
     
@@ -974,4 +1011,3 @@ screen1()
 frame_0.pack()
 
 toplevel_1.mainloop()
-
