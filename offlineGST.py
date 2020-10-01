@@ -32,6 +32,7 @@ v3.0.2
 - removed random identifier from name of .JSON file exported
 - fixed issue where modified bill won't save
 - GSTIN entered will be entered into .PAST_GSTINS file, which wil be referred to in all months of selected company
+- added auto-update
 
 '''
 
@@ -50,6 +51,23 @@ headingcolor1='LightBlue'
 toplevel_1 = tk.Tk(screenName='offlineGST',baseName='offlineGST',className='offlineGST')
 toplevel_1.resizable(height=0,width=0)
 frame_0 = tk.Frame(toplevel_1,height=400,width=400)
+
+def check_for_update():
+    browser2 = PoolManager()
+    respupdate = browser2.urlopen('GET','https://raw.githubusercontent.com/bhuvannarula/offlineGST/master/offlineGST.py').data.decode('utf-8')
+    scriptfilein = open(os.getcwd()+'/offlineGST.py','r+')
+    scriptfileindata = scriptfilein.read()
+    if scriptfileindata != respupdate:
+        scriptfilein.seek(0)
+        scriptfilein.truncate()
+        scriptfilein.write(respupdate)
+        scriptfilein.close()
+        messagebox.showinfo('Updated!','New update has been installed.\nPlease Restart Utility.')
+        toplevel_1.destroy()
+        return True
+    else:
+        scriptfilein.close()
+        return False
 
 def get_placeofsupply(statecode):
     stcode = {'35': '35-Andaman and Nicobar Islands', '37': '37-Andhra Pradesh', '12': '12-Arunachal Pradesh', '18': '18-Assam', '10': '10-Bihar', '04': '04-Chandigarh', '22': '22-Chattisgarh', '26': '26-Dadra and Nagar Haveli', '25': '25-Daman and Diu', '07': '07-Delhi', '30': '30-Goa', '24': '24-Gujarat', '06': '06-Haryana', '02': '02-Himachal Pradesh', '01': '01-Jammu and Kashmir', '20': '20-Jharkhand', '29': '29-Karnataka', '32': '32-Kerala', '31': '31-Lakshadweep Islands', '23': '23-Madhya Pradesh', '27': '27-Maharashtra', '14': '14-Manipur', '17': '17-Meghalaya', '15': '15-Mizoram', '13': '13-Nagaland', '21': '21-Odisha', '34': '34-Pondicherry', '03': '03-Punjab', '08': '08-Rajasthan', '11': '11-Sikkim', '33': '33-Tamil Nadu', '36': '36-Telangana', '16': '16-Tripura', '09': '09-Uttar Pradesh', '05': '05-Uttarakhand', '19': '19-West Bengal'}
@@ -949,6 +967,8 @@ def createCompany():
     frame_1_2.place(x=70,y=70)
 
 def screen1():
+    if check_for_update():
+        return None
     global cName,sMonth
     def openMainMenu(companyName,selectedMonth):
         global cName,sMonth
@@ -1006,8 +1026,8 @@ def screen1():
     frame_1.config(pady='10')
     frame_1.place(x=50,y=50)
 
-screen1()
+
 
 frame_0.pack()
-
+screen1()
 toplevel_1.mainloop()
