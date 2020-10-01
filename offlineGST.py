@@ -53,20 +53,23 @@ toplevel_1.resizable(height=0,width=0)
 frame_0 = tk.Frame(toplevel_1,height=400,width=400)
 
 def check_for_update():
-    browser2 = PoolManager()
-    respupdate = browser2.urlopen('GET','https://raw.githubusercontent.com/bhuvannarula/offlineGST/master/offlineGST.py').data.decode('utf-8')
-    scriptfilein = open(os.getcwd()+'/offlineGST.py','r+')
-    scriptfileindata = scriptfilein.read()
-    if scriptfileindata != respupdate:
-        scriptfilein.seek(0)
-        scriptfilein.truncate()
-        scriptfilein.write(respupdate)
-        scriptfilein.close()
-        messagebox.showinfo('Updated!','New update has been installed.\nPlease Restart Utility.')
-        toplevel_1.destroy()
-        return True
-    else:
-        scriptfilein.close()
+    try:
+        browser2 = PoolManager()
+        respupdate = browser2.urlopen('GET','https://raw.githubusercontent.com/bhuvannarula/offlineGST/master/offlineGST.py').data.decode('utf-8')
+        scriptfilein = open(os.getcwd()+'/offlineGST.py','r+')
+        scriptfileindata = scriptfilein.read()
+        if scriptfileindata != respupdate:
+            scriptfilein.seek(0)
+            scriptfilein.truncate()
+            scriptfilein.write(respupdate)
+            scriptfilein.close()
+            messagebox.showinfo('Updated!','New update has been installed.\nPlease Restart Utility.')
+            toplevel_1.destroy()
+            return True
+        else:
+            scriptfilein.close()
+            return False
+    except:
         return False
 
 def get_placeofsupply(statecode):
