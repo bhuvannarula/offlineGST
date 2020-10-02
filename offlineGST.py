@@ -931,7 +931,7 @@ def createCompDir(cName,cGSTIN):
     fileGSTIN = open(os.getcwd()+'/companies/'+cName.get()+'/.COMPANY_GSTIN','w',newline='')
     fileGSTIN.write(cGSTIN)
     fileGSTIN.close()
-    fileGSTINS = open(os.getcwd()+'/companies/'+cName.get()+'/.PAST_GSTINS','wb',newline='')
+    fileGSTINS = open(os.getcwd()+'/companies/'+cName.get()+'/.PAST_GSTINS','wb')
     pickle.dump({},fileGSTINS)
     fileGSTINS.close()
     messagebox.showinfo('Success!','New Company successfully created!')
