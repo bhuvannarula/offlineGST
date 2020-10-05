@@ -34,6 +34,7 @@ v3.0.2
 - GSTIN entered will be entered into .PAST_GSTINS file, which wil be referred to in all months of selected company
 - added auto-update
 
+
 '''
 
 # Enter the path to the serverBackupScript.py on your server
