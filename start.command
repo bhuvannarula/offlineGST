@@ -1,2 +1,2 @@
-cd `dirname $0`
+cd "$(command dirname -- "${0}")"
 python3 offlineGST.py
