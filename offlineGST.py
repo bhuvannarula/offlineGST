@@ -34,7 +34,6 @@ v3.0.2
 - GSTIN entered will be entered into .PAST_GSTINS file, which wil be referred to in all months of selected company
 - added auto-update
 
-
 '''
 
 # Enter the path to the serverBackupScript.py on your server
@@ -92,7 +91,6 @@ def check_GSTIN(GSTIN):
         return False
     webopener = request.urlopen(
         'https://cleartax.in/f/compliance-report/{}/'.format(GSTIN))
-    #response_gstin_tradename = webopener.request('GET','https://cleartax.in/f/compliance-report/{}/'.format(GSTIN)).data
     response_gstin_tradename = json.loads(webopener.read())
     try:
         response_gstin_tradename = response_gstin_tradename['taxpayerInfo']['tradeNam']
@@ -107,7 +105,6 @@ def check_GSTIN(GSTIN):
 def back_to_homescreen(currentFrame):
     currentFrame.place_forget()
     screen1()
-    # frame_1.place(x=50,y=50)
 
 
 def back_to_menu(currentFrame=None):
@@ -137,7 +134,7 @@ def backupMain(companyName, filingPeriod, hashed=False, username=None, password=
 
     def initialiseCSVdata():
         csvFileIN = open(os.getcwd(
-)+'/companies/{}/{}/GSTR1.csv'.format(companyName, filingPeriod), 'r', newline='')
+        )+'/companies/{}/{}/GSTR1.csv'.format(companyName, filingPeriod), 'r', newline='')
         csvFileReader = csv.reader(csvFileIN)
         next(csvFileReader)
         nestedTuple = tuple()
