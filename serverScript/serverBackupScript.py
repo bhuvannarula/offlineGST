@@ -23,21 +23,23 @@ print('Content-type: text/html\n')
 ENVV = dotenv_values()
 
 connection = conn.connect(
-    host = ENVV['HOSTNAME'],
-    user = ENVV['USERNAME'],
-    passwd = ENVV['PASSWORD'],
-    database = ENVV['DATABASE']
-    )
+    host=ENVV['HOSTNAME'],
+    user=ENVV['USERNAME'],
+    passwd=ENVV['PASSWORD'],
+    database=ENVV['DATABASE']
+)
 
 mCursor = connection.cursor()
 
 dataReceived = cgi.FieldStorage()
 
-def generate_hash(string,length):
+
+def generate_hash(string, length):
     enc_name = sha256(str(string).encode('ascii')).hexdigest()[:length]
     return enc_name
 
-def create_newuser_table(tableName,cursored):
+
+def create_newuser_table(tableName, cursored):
     cursored.execute('''
                     CREATE TABLE {} (
                         work_company_gstin CHAR(15) NOT NULL,
@@ -67,7 +69,8 @@ if str(dataReceived.getvalue('Identification')) == 'True':
         except:
             print('Failed!')
             raise UserWarning('User Authentication Failed!')
-        mCursor.execute("SELECT * FROM masterminds WHERE username='{}' AND password='{}';".format(user_chk,pass_chk))
+        mCursor.execute(
+            "SELECT * FROM masterminds WHERE username='{}' AND password='{}';".format(user_chk, pass_chk))
         resp = list(i for i in mCursor)
         if len(resp) != 1:
             print('Failed!')
@@ -75,16 +78,21 @@ if str(dataReceived.getvalue('Identification')) == 'True':
         else:
             table_work_name = resp[0][2]
             mCursor.execute("SELECT CURRENT_TIMESTAMP();")
-            mresp = str(list(i[0] for i in mCursor)[0]) # on the server im working, datetime module was unavailable, and timestamp was required for random authen_key
-            authen_key = generate_hash(user_chk+mresp,16)
-            mCursor.execute("SELECT * FROM current_sessions WHERE work_table='{}';".format(table_work_name))
+            # on the server im working, datetime module was unavailable, and timestamp was required for random authen_key
+            mresp = str(list(i[0] for i in mCursor)[0])
+            authen_key = generate_hash(user_chk+mresp, 16)
+            mCursor.execute(
+                "SELECT * FROM current_sessions WHERE work_table='{}';".format(table_work_name))
             resp2 = list(i for i in mCursor)
             if len(resp2) != 0:
                 temp2 = str(tuple(list(i[0] for i in resp2)))
                 if len(resp2) == 1:
-                    temp2 = temp2.replace("',)","')")  # for tuple of len = 1 to convert (a,) to (a)
-                mCursor.execute("DELETE FROM current_sessions WHERE session_id IN {}".format(temp2))
-            mCursor.execute("INSERT INTO current_sessions VALUES {}".format(str((authen_key,work_company_gstin,table_work_name,filing_period,packets_req,'0'))))
+                    # for tuple of len = 1 to convert (a,) to (a)
+                    temp2 = temp2.replace("',)", "')")
+                mCursor.execute(
+                    "DELETE FROM current_sessions WHERE session_id IN {}".format(temp2))
+            mCursor.execute("INSERT INTO current_sessions VALUES {}".format(str(
+                (authen_key, work_company_gstin, table_work_name, filing_period, packets_req, '0'))))
             connection.commit()
             print(authen_key)
     check_user_cred()
@@ -97,54 +105,67 @@ elif str(dataReceived.getvalue('ongoingmagic')) == 'True':
             rawData = str(dataReceived.getvalue('folklores'))
             if len(authen_key) != 16 or curr_packet_count == '' or rawData == '':
                 raise ValueError
-            decodedData = rawData # will be decoded when evaluating, else if %27 breaks into % & 27, it doesn't gets evaluated
+            # will be decoded when evaluating, else if %27 breaks into % & 27, it doesn't gets evaluated
+            decodedData = rawData
         except:
             print('Failed')
             raise UserWarning('Packet Receiving Failed!')
-        
-        mCursor.execute("SELECT * FROM current_sessions WHERE session_id='{}';".format(authen_key))
+
+        mCursor.execute(
+            "SELECT * FROM current_sessions WHERE session_id='{}';".format(authen_key))
         resp = list(i for i in mCursor)
-        if len(resp) != 1 or int(resp[0][5]) != int(curr_packet_count)-1 or resp[0][4] == resp[0][5]:     # resp[0][5] = packets_rec
+        # resp[0][5] = packets_rec
+        if len(resp) != 1 or int(resp[0][5]) != int(curr_packet_count)-1 or resp[0][4] == resp[0][5]:
             print('Failed!')
             raise UserWarning('Invalid Packet!')
-        
-        mCursor.execute("SELECT * FROM spcookies WHERE authen_key='{}'".format(authen_key))
+
+        mCursor.execute(
+            "SELECT * FROM spcookies WHERE authen_key='{}'".format(authen_key))
         resp5 = list(i for i in mCursor)
         if len(resp5) != 1:
-            mCursor.execute("INSERT INTO spcookies VALUES ('{}','{}')".format(authen_key,decodedData))
+            mCursor.execute("INSERT INTO spcookies VALUES ('{}','{}')".format(
+                authen_key, decodedData))
         else:
-            mCursor.execute("UPDATE spcookies SET cookie=CONCAT(cookie,'{}') WHERE authen_key='{}'".format(decodedData,authen_key))
+            mCursor.execute("UPDATE spcookies SET cookie=CONCAT(cookie,'{}') WHERE authen_key='{}'".format(
+                decodedData, authen_key))
         connection.commit()
         print('Received')
-        mCursor.execute("UPDATE current_sessions SET packets_rec='{}' WHERE session_id='{}';".format(str(curr_packet_count),authen_key))
+        mCursor.execute("UPDATE current_sessions SET packets_rec='{}' WHERE session_id='{}';".format(
+            str(curr_packet_count), authen_key))
         connection.commit()
-        return ((int(curr_packet_count) == int(resp[0][4])),authen_key)
-    respSentPacket,authen_key = receive_packet()
+        return ((int(curr_packet_count) == int(resp[0][4])), authen_key)
+    respSentPacket, authen_key = receive_packet()
     if respSentPacket:
-        mCursor.execute("SELECT * FROM current_sessions WHERE session_id='{}';".format(authen_key))
+        mCursor.execute(
+            "SELECT * FROM current_sessions WHERE session_id='{}';".format(authen_key))
         resp3 = list(i for i in mCursor)
         work_company_gstin = resp3[0][1]
         work_table = resp3[0][2]
         filing_period = resp3[0][3]
         try:
-            mCursor.execute("SELECT * FROM spcookies WHERE authen_key='{}'".format(authen_key))
-            temp1 = list(i for i in mCursor)  
+            mCursor.execute(
+                "SELECT * FROM spcookies WHERE authen_key='{}'".format(authen_key))
+            temp1 = list(i for i in mCursor)
             temp2 = eval(unquote(temp1[0][1]))
             datatoEnter = list()
             for item in temp2:
-                datatoEnter.append((work_company_gstin,filing_period)+item)
+                datatoEnter.append((work_company_gstin, filing_period)+item)
             datatoEnter = tuple(datatoEnter)
             if type(datatoEnter) != tuple:
                 raise ValueError
         except Exception as ee:
             print('Data Corrputed! Try again!')
             raise UserWarning('Data Corrputed! Try again!')
-        mCursor.execute("SELECT * FROM {} WHERE work_company_gstin='{}' AND filing_period = '{}';".format(work_table,work_company_gstin,filing_period))
+        mCursor.execute("SELECT * FROM {} WHERE work_company_gstin='{}' AND filing_period = '{}';".format(
+            work_table, work_company_gstin, filing_period))
         resp4 = list(i for i in mCursor)
         if len(resp4) != 0:
-            mCursor.execute("DELETE FROM {} WHERE work_company_gstin='{}' AND filing_period='{}';".format(work_table,work_company_gstin,filing_period))
-        mCursor.execute('INSERT INTO {} VALUES {};'.format(work_table,str(datatoEnter).replace("',)","')")[1:-1]))
-        mCursor.execute("DELETE FROM spcookies WHERE authen_key='{}'".format(authen_key))
+            mCursor.execute("DELETE FROM {} WHERE work_company_gstin='{}' AND filing_period='{}';".format(
+                work_table, work_company_gstin, filing_period))
+        mCursor.execute('INSERT INTO {} VALUES {};'.format(
+            work_table, str(datatoEnter).replace("',)", "')")[1:-1]))
+        mCursor.execute(
+            "DELETE FROM spcookies WHERE authen_key='{}'".format(authen_key))
         connection.commit()
         print('Successful!')
 elif str(dataReceived.getvalue('Learning')) == 'True':
@@ -157,21 +178,22 @@ elif str(dataReceived.getvalue('Learning')) == 'True':
         except:
             print('Failed!')
             raise UserWarning('Incomplete Query!')
-        new_user_table = generate_hash(new_user_name+new_user_pass,64)
-        mCursor.execute("INSERT INTO masterminds VALUES('{}','{}','{}');".format(new_user_name,new_user_pass,new_user_table))
+        new_user_table = generate_hash(new_user_name+new_user_pass, 64)
+        mCursor.execute("INSERT INTO masterminds VALUES('{}','{}','{}');".format(
+            new_user_name, new_user_pass, new_user_table))
         resppregist = list(i for i in mCursor)
         if resppregist != []:
             print('Failed')
             raise UserWarning('Unable to register new username')
         connection.commit()
-        create_newuser_table(new_user_table,mCursor)
+        create_newuser_table(new_user_table, mCursor)
         connection.commit()
         print('Successful!')
     register_user()
 
 elif str(dataReceived.getvalue('getback')) == 'True':
     try:
-        username= str(dataReceived.getvalue('mastermindname'))
+        username = str(dataReceived.getvalue('mastermindname'))
         password = str(dataReceived.getvalue('wizardspell'))
         companyGSTIN = str(dataReceived.getvalue('hobbit'))
         filingPeriod = str(dataReceived.getvalue('book'))
@@ -183,14 +205,15 @@ elif str(dataReceived.getvalue('getback')) == 'True':
         print('Failed!')
         raise UserWarning('Wrong Credentials for restore')
     else:
-        mCursor.execute("SELECT * FROM masterminds WHERE username='{}' AND password='{}';".format(username,password))
+        mCursor.execute(
+            "SELECT * FROM masterminds WHERE username='{}' AND password='{}';".format(username, password))
         resp = list(i for i in mCursor)
         if len(resp) != 1:
             print('Failed!')
             raise UserWarning('User Authentication Failed!')
         else:
             table_work_name = resp[0][2]
-            mCursor.execute("SELECT GSTIN,'',inv_no,inv_date,CAST(ROUND(CAST(inv_taxbl AS UNSIGNED)*(100+CAST(inv_rate AS UNSIGNED))/100,2) AS CHAR),SUBSTRING(GSTIN,1,2),'Regular',inv_rate,inv_taxbl,'0.00'  FROM {} WHERE work_company_gstin='{}' AND filing_period='{}';".format(table_work_name,companyGSTIN,filingPeriod))
+            mCursor.execute("SELECT GSTIN,'',inv_no,inv_date,CAST(ROUND(CAST(inv_taxbl AS UNSIGNED)*(100+CAST(inv_rate AS UNSIGNED))/100,2) AS CHAR),SUBSTRING(GSTIN,1,2),'Regular',inv_rate,inv_taxbl,'0.00'  FROM {} WHERE work_company_gstin='{}' AND filing_period='{}';".format(table_work_name, companyGSTIN, filingPeriod))
             resp22 = list(i for i in mCursor)
             print(str(tuple(resp22)))
 
