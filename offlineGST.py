@@ -325,9 +325,12 @@ def addNewInvoice(modify=False, reset=False):
                 taxabledatalist_for_modify[taxSeq.index(item[7])] = item[8]
                 datalist_for_modify = item[:4]
                 pastInvoices.remove(item[2])
-                del invoiceNumDateDict[item[2]]
+                #del invoiceNumDateDict[item[2]]
             else:
                 final_csv_before_addmodify.append(item)
+        else:
+            if item[2] == modify:
+                del invoiceNumDateDict[item[2]]
         currInvNum.set(datalist_for_modify[2])
         currInvDate.set(datalist_for_modify[3])
         partyGSTIN.set(datalist_for_modify[0])
