@@ -267,6 +267,8 @@ def get_current_month_summary():
         data_summary[2] += round(float(item[8])*float(item[7])/100, 2)
         data_summary[3] += round(float(item[9]), 2)
     data_summary[0] = len(set(pastInvoices))
+    for i in range(1,len(data_summary)):
+        data_summary[i] = round(data_summary[i],2)
     pastInvoices.sort(key=lambda var: int(
         re.search('([0-9]+)$', var).groups()[0]))
     return data_summary
