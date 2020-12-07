@@ -82,10 +82,9 @@ def check_for_update():
         return False
 
 
+stcode = {'35': '35-Andaman and Nicobar Islands', '37': '37-Andhra Pradesh', '12': '12-Arunachal Pradesh', '18': '18-Assam', '10': '10-Bihar', '04': '04-Chandigarh', '22': '22-Chattisgarh', '26': '26-Dadra and Nagar Haveli', '25': '25-Daman and Diu', '07': '07-Delhi', '30': '30-Goa', '24': '24-Gujarat', '06': '06-Haryana', '02': '02-Himachal Pradesh', '01': '01-Jammu and Kashmir', '20': '20-Jharkhand', '29': '29-Karnataka', '32': '32-Kerala',
+            '31': '31-Lakshadweep Islands', '23': '23-Madhya Pradesh', '27': '27-Maharashtra', '14': '14-Manipur', '17': '17-Meghalaya', '15': '15-Mizoram', '13': '13-Nagaland', '21': '21-Odisha', '34': '34-Pondicherry', '03': '03-Punjab', '08': '08-Rajasthan', '11': '11-Sikkim', '33': '33-Tamil Nadu', '36': '36-Telangana', '16': '16-Tripura', '09': '09-Uttar Pradesh', '05': '05-Uttarakhand', '19': '19-West Bengal', '38': '38-Ladakh'}
 def get_placeofsupply(statecode):
-    global stcode
-    stcode = {'35': '35-Andaman and Nicobar Islands', '37': '37-Andhra Pradesh', '12': '12-Arunachal Pradesh', '18': '18-Assam', '10': '10-Bihar', '04': '04-Chandigarh', '22': '22-Chattisgarh', '26': '26-Dadra and Nagar Haveli', '25': '25-Daman and Diu', '07': '07-Delhi', '30': '30-Goa', '24': '24-Gujarat', '06': '06-Haryana', '02': '02-Himachal Pradesh', '01': '01-Jammu and Kashmir', '20': '20-Jharkhand', '29': '29-Karnataka', '32': '32-Kerala',
-              '31': '31-Lakshadweep Islands', '23': '23-Madhya Pradesh', '27': '27-Maharashtra', '14': '14-Manipur', '17': '17-Meghalaya', '15': '15-Mizoram', '13': '13-Nagaland', '21': '21-Odisha', '34': '34-Pondicherry', '03': '03-Punjab', '08': '08-Rajasthan', '11': '11-Sikkim', '33': '33-Tamil Nadu', '36': '36-Telangana', '16': '16-Tripura', '09': '09-Uttar Pradesh', '05': '05-Uttarakhand', '19': '19-West Bengal', '38': '38-Ladakh'}
     return stcode[statecode]
 
 
@@ -403,7 +402,12 @@ def addNewInvoice(modify=False, reset=False):
     def listGSTIN():
         temp111 = list(
             i for i in tempPASTGSTIN if re.search(partyGSTIN.get(), i))
-        
+        print(temp111)
+        if temp111 == []:
+            temp111 = list(
+             i for i in list(stcode.values()) if re.search(partyGSTIN.get(), i)   
+            )
+        print(temp111)
         entry_7['values'] = temp111
     entry_7.config(postcommand=listGSTIN)
     entry_7.bind('<FocusOut>', autopartyname)
@@ -496,7 +500,8 @@ def addNewInvoice(modify=False, reset=False):
                 #pastGSTIN[partyGSTIN.get()] = partyName.get()
                 csvWriter.writerow([partyGSTIN.get(), partyName.get(), invNum.get(), invDate.get(
                 ), totalInvValue, get_placeofsupply(partyGSTIN.get()[:2]), 'Regular', taxSeq[taxItem[0]], taxItem[1], '0.00'])
-                tempPASTGSTIN[partyGSTIN.get()] = partyName.get()
+                if is_GSTIN(partyGSTIN.get()):
+                    tempPASTGSTIN[partyGSTIN.get()] = partyName.get()
 
         tempPASTGSTINfile = open(
             os.getcwd()+'/companies/{}/.PAST_GSTINS'.format(cName), 'wb')
@@ -608,7 +613,7 @@ def exportInvoices():
     taxRate = ['0', '5', '12', '18', '28']
 
     for item in csvFileReader:
-        if len(item[0]) != 2:
+        if is_GSTIN(item[0]):
             b2bdata.append(item)
             b2btaxable[0] += round(float(item[8]), 2)
             if companyGSTIN[:2] == item[0][:2]:
@@ -616,9 +621,9 @@ def exportInvoices():
             else:
                 b2btaxable[2] += round(float(item[8])*float(item[7])/100, 2)
         else:
-            if item[0] not in b2cs:
-                b2cs[item[0]] = [0, 0, 0, 0, 0]
-            b2cs[item[0]][taxRate.index(item[7])] += round(float(item[8]), 2)
+            if item[0][:2] not in b2cs:
+                b2cs[item[0][:2]] = [0, 0, 0, 0, 0]
+            b2cs[item[0][:2]][taxRate.index(item[7])] += round(float(item[8]), 2)
 
     try:
         os.mkdir(os.getcwd()+'/export')
