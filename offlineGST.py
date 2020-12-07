@@ -521,7 +521,7 @@ def addNewInvoice(modify=False, reset=False):
         elif not re.fullmatch('[0-9]{2}/[0-9]{2}/[0-9]{4}', currInvDate.get()):
             showError('Wrong/Incomplete Date Entered!')
             return False
-        elif partyGSTIN.get() in list(stcode.values) and partyName.get() in ('', None):
+        elif partyGSTIN.get() in list(stcode.values()) and partyName.get() in ('', None):
             pass
         elif not re.fullmatch('[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{3}', partyGSTIN.get()):
             showError('Wrong/Incomplete GSTIN Entered!')
