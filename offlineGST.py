@@ -261,7 +261,7 @@ def get_current_month_summary():
         os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName, sMonth), 'r', newline='')
     tempReader = csv.reader(csvfileIn)
     next(tempReader, None)
-    # Total Invoices, Total Taxbl Val, Total Tax, Total Cess
+    # Total Invoices, Total Taxbl Val, Total IGST, Total CGST/SGST
     data_summary = [0, 0, 0, 0]
     pastInvoices = []
     #pastGSTIN = {}
@@ -271,8 +271,11 @@ def get_current_month_summary():
         invoiceNumDateDict[item[2]] = item[3]
         #pastGSTIN[item[0]] = item[1]
         data_summary[1] += round(float(item[8]), 2)
-        data_summary[2] += round(float(item[8])*float(item[7])/100, 2)
-        data_summary[3] += round(float(item[9]), 2)
+        if item[0][:2] == companyGSTIN[:2]:
+            data_summary[3] += round(float(item[8])*float(item[7])/200, 2)
+        else:
+            data_summary[2] += round(float(item[8])*float(item[7])/100, 2)
+        #data_summary[3] += round(float(item[9]), 2) cess replaced by cgst/sgst
     data_summary[0] = len(set(pastInvoices))
     for i in range(1,len(data_summary)):
         data_summary[i] = round(data_summary[i],2)
@@ -402,7 +405,7 @@ def addNewInvoice(modify=False, reset=False):
     def listGSTIN():
         temp111 = list(
             i for i in tempPASTGSTIN if re.search(partyGSTIN.get().upper(), i.upper()))
-        if temp111 == []:
+        if temp111 == [] and partyGSTIN.get() not in ('',None):
             temp111 = list(
              i for i in list(stcode.values()) if re.search(partyGSTIN.get().lower(), i.lower())   
             )
@@ -522,6 +525,7 @@ def addNewInvoice(modify=False, reset=False):
             showError('Wrong/Incomplete Date Entered!')
             return False
         elif partyGSTIN.get() in list(stcode.values()) and partyName.get() in ('', None):
+            partyGSTIN.set(partyGSTIN.get()[:2])
             pass
         elif not re.fullmatch('[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{3}', partyGSTIN.get()):
             showError('Wrong/Incomplete GSTIN Entered!')
@@ -621,9 +625,9 @@ def exportInvoices():
             else:
                 b2btaxable[2] += round(float(item[8])*float(item[7])/100, 2)
         else:
-            if item[0][:2] not in b2cs:
-                b2cs[item[0][:2]] = [0, 0, 0, 0, 0]
-            b2cs[item[0][:2]][taxRate.index(item[7])] += round(float(item[8]), 2)
+            if item[0] not in b2cs:
+                b2cs[item[0]] = [0, 0, 0, 0, 0]
+            b2cs[item[0]][taxRate.index(item[7])] += round(float(item[8]), 2)
 
     try:
         os.mkdir(os.getcwd()+'/export')
@@ -768,6 +772,8 @@ def action_perform(todoAction):
                 messagebox.showinfo(
                     'Success!', 'The invoices have been exported successfully, and JSON file is now present in "export" folder. ')
                 back_to_menu()
+        else:
+            back_to_menu()
     elif todoAction == 'Backup Invoices':
         messagebox._show('Caution', 'The invoices of selected period will be uploaded to cloud.',
                          _icon='info', _type=messagebox.OK)
@@ -960,7 +966,7 @@ def screen2():
     label_7b.pack(anchor='w', side='top')
     label_11 = tk.Label(frame_7)
     label_11.config(takefocus=False, justify='left',
-                    text='Total Invoices: {}\nTotal Taxable Value: {}\nTotal Tax Amount: {}\nTotal Cess Amount: {}'.format(*get_current_month_summary()))
+                    text='Total Invoices: {}\nTotal Taxable Value: {}\nTotal IGST Amount: {}\nTotal CGST/SGST Amount: {}'.format(*get_current_month_summary()))
     label_11.pack(anchor='w', padx=10, side='top')
 
     widthframe_1_2 = tk.Frame(frame_7, width=400, height=20)
