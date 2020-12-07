@@ -401,11 +401,11 @@ def addNewInvoice(modify=False, reset=False):
 
     def listGSTIN():
         temp111 = list(
-            i for i in tempPASTGSTIN if re.search(partyGSTIN.get(), i))
+            i for i in tempPASTGSTIN if re.search(partyGSTIN.get().upper(), i.upper()))
         print(temp111)
         if temp111 == []:
             temp111 = list(
-             i for i in list(stcode.values()) if re.search(partyGSTIN.get(), i)   
+             i for i in list(stcode.values()) if re.search(partyGSTIN.get().lower(), i.lower())   
             )
         print(temp111)
         entry_7['values'] = temp111
@@ -513,6 +513,8 @@ def addNewInvoice(modify=False, reset=False):
         return True
 
     def check_valid_newInvoice_input():
+        if is_GSTIN(partyGSTIN.get()):
+            partyGSTIN.set(partyGSTIN.get().upper())
         ttaxvallist = list(round(float(ii.get()), 2) for ii in [
                            taxable0val, taxable5val, taxable12val, taxable18val, taxable28val])
         if currInvNum.get() in (None, ''):
@@ -521,7 +523,7 @@ def addNewInvoice(modify=False, reset=False):
         elif not re.fullmatch('[0-9]{2}/[0-9]{2}/[0-9]{4}', currInvDate.get()):
             showError('Wrong/Incomplete Date Entered!')
             return False
-        elif len(partyGSTIN.get()) == 2 and partyName.get() in ('', None):
+        elif partyGSTIN.get() in list(stcode.values) and partyName.get() in ('', None):
             pass
         elif not re.fullmatch('[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{3}', partyGSTIN.get()):
             showError('Wrong/Incomplete GSTIN Entered!')
