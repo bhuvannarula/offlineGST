@@ -402,12 +402,10 @@ def addNewInvoice(modify=False, reset=False):
     def listGSTIN():
         temp111 = list(
             i for i in tempPASTGSTIN if re.search(partyGSTIN.get().upper(), i.upper()))
-        print(temp111)
         if temp111 == []:
             temp111 = list(
              i for i in list(stcode.values()) if re.search(partyGSTIN.get().lower(), i.lower())   
             )
-        print(temp111)
         entry_7['values'] = temp111
     entry_7.config(postcommand=listGSTIN)
     entry_7.bind('<FocusOut>', autopartyname)
