@@ -694,8 +694,8 @@ def exportInvoices():
                 temprecord['pos'] = i
                 temprecord['rt'] = rateList[j]
                 temprecord['iamt'] = 0
-                temprecord['camt'] = b2cs[i][j]*rateList[j]/200
-                temprecord['samt'] = temprecord['camt']
+                temprecord['camt'] = round(b2cs[i][j]*rateList[j]/200,2)
+                temprecord['samt'] = round(temprecord['camt'],2)
                 temprecord['csamt'] = 0
             else:
                 if int(b2cs[i][j]) == 0:
@@ -706,9 +706,9 @@ def exportInvoices():
                 temprecord['typ'] = 'OE'
                 temprecord['pos'] = i
                 temprecord['rt'] = rateList[j]
-                temprecord['iamt'] = b2cs[i][j]*rateList[j]/100
+                temprecord['iamt'] = round(b2cs[i][j]*rateList[j]/100,2)
                 temprecord['camt'] = 0
-                temprecord['samt'] = temprecord['camt']
+                temprecord['samt'] = 0
                 temprecord['csamt'] = 0
             b2csfinaldata.append(temprecord)
 
