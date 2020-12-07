@@ -345,7 +345,10 @@ def addNewInvoice(modify=False, reset=False):
                 del invoiceNumDateDict[item[2]]
         currInvNum.set(datalist_for_modify[2])
         currInvDate.set(datalist_for_modify[3])
-        partyGSTIN.set(datalist_for_modify[0])
+        if len(datalist_for_modify[0]) == 2:
+            partyGSTIN.set(stcode(datalist_for_modify[0]))
+        else:
+            partyGSTIN.set(datalist_for_modify[0])
         partyName.set(datalist_for_modify[1])
         taxable0val.set(taxabledatalist_for_modify[0])
         taxable5val.set(taxabledatalist_for_modify[1])
@@ -390,11 +393,13 @@ def addNewInvoice(modify=False, reset=False):
     entry_8 = tk.Entry(frame_7_8)
 
     def autopartyname(event):
-        if event.widget == entry_7 and partyGSTIN.get() in tempPASTGSTIN:
+        if event.widget == entry_7 and partyGSTIN.get().upper() in tempPASTGSTIN:
+            partyGSTIN.set(partyGSTIN.get().upper())
             partyName.set(tempPASTGSTIN[partyGSTIN.get()])
             entry_8.delete('0', 'end')
             entry_8.insert('0', tempPASTGSTIN[partyGSTIN.get()])
-        elif event.widget == entry_7 and re.fullmatch('[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{3}', partyGSTIN.get()):
+        elif event.widget == entry_7 and re.fullmatch('[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{3}', partyGSTIN.get().upper()):
+            partyGSTIN.set(partyGSTIN.get().upper())
             foundGSTIN = check_GSTIN(partyGSTIN.get())
             if foundGSTIN:
                 partyName.set(foundGSTIN)
