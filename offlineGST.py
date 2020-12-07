@@ -39,7 +39,7 @@ v3.0.2
 # Enter the path to the serverBackupScript.py on your server
 #path_to_server_script = 'enter_path_here'
 path_to_server_script = 'https://bhuvannarula.cf/offlinegst/cgi-bin/serverBackupScript.py'
-
+auto_update = True
 
 def get_companyDirectory():
     if not os.path.isdir(os.getcwd()+'/companies'):
@@ -58,6 +58,8 @@ frame_0 = tk.Frame(toplevel_1, height=400, width=400)
 
 
 def check_for_update():
+    if not auto_update:
+        return False
     try:
         browser2 = PoolManager()
         respupdate = browser2.urlopen(
@@ -81,6 +83,7 @@ def check_for_update():
 
 
 def get_placeofsupply(statecode):
+    global stcode
     stcode = {'35': '35-Andaman and Nicobar Islands', '37': '37-Andhra Pradesh', '12': '12-Arunachal Pradesh', '18': '18-Assam', '10': '10-Bihar', '04': '04-Chandigarh', '22': '22-Chattisgarh', '26': '26-Dadra and Nagar Haveli', '25': '25-Daman and Diu', '07': '07-Delhi', '30': '30-Goa', '24': '24-Gujarat', '06': '06-Haryana', '02': '02-Himachal Pradesh', '01': '01-Jammu and Kashmir', '20': '20-Jharkhand', '29': '29-Karnataka', '32': '32-Kerala',
               '31': '31-Lakshadweep Islands', '23': '23-Madhya Pradesh', '27': '27-Maharashtra', '14': '14-Manipur', '17': '17-Meghalaya', '15': '15-Mizoram', '13': '13-Nagaland', '21': '21-Odisha', '34': '34-Pondicherry', '03': '03-Punjab', '08': '08-Rajasthan', '11': '11-Sikkim', '33': '33-Tamil Nadu', '36': '36-Telangana', '16': '16-Tripura', '09': '09-Uttar Pradesh', '05': '05-Uttarakhand', '19': '19-West Bengal', '38': '38-Ladakh'}
     return stcode[statecode]
@@ -101,6 +104,11 @@ def check_GSTIN(GSTIN):
     else:
         return response_gstin_tradename
 
+def is_GSTIN(GSTIN):
+    if re.fullmatch('[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{3}', GSTIN):
+        return True
+    else:
+        return False
 
 def back_to_homescreen(currentFrame):
     currentFrame.place_forget()
@@ -395,6 +403,7 @@ def addNewInvoice(modify=False, reset=False):
     def listGSTIN():
         temp111 = list(
             i for i in tempPASTGSTIN if re.search(partyGSTIN.get(), i))
+        
         entry_7['values'] = temp111
     entry_7.config(postcommand=listGSTIN)
     entry_7.bind('<FocusOut>', autopartyname)
@@ -659,10 +668,10 @@ def exportInvoices():
                 else:
                     temptaxamount[0] = round(float(list(b2bfinaldata[gstin][invNum][1].keys())[i]) * round(float(
                         b2bfinaldata[gstin][invNum][1][list(b2bfinaldata[gstin][invNum][1].keys())[i]]), 2) / 100, 2)
-                tempBill['itms'][-1]['itm_det']['iamt'] = temptaxamount[0]
-                tempBill['itms'][-1]['itm_det']['camt'] = temptaxamount[1]
+                tempBill['itms'][-1]['itm_det']['iamt'] = round(temptaxamount[0],2)
+                tempBill['itms'][-1]['itm_det']['camt'] = round(temptaxamount[1],2)
                 tempBill['itms'][-1]['itm_det']['csamt'] = 0
-                tempBill['itms'][-1]['itm_det']['samt'] = temptaxamount[2]
+                tempBill['itms'][-1]['itm_det']['samt'] = round(temptaxamount[2],2)
                 tempSumTotal += sum(temptaxamount) + round(float(
                     b2bfinaldata[gstin][invNum][1][list(b2bfinaldata[gstin][invNum][1].keys())[i]]), 2)
             tempBill['val'] = round(tempSumTotal, 2)
@@ -1071,20 +1080,30 @@ def createCompany():
     label_7_8.config(font='{Helventica} 13 {italic}',
                      text='Create New Company:')
     label_7_8.pack(anchor='w', side='top')
-    label_9 = tk.Label(frame_1_2)
-    label_9.config(text='Company Name: ')
-    label_9.pack(anchor='w', padx='20', side='top')
-    entry_1 = tk.Entry(frame_1_2)
-    compName = tk.StringVar()
-    entry_1.config(textvariable=compName)
-    entry_1.pack(anchor='w', padx='40', side='top')
+
+    compGSTIN, compName = tk.StringVar(),tk.StringVar()
+
+    def auto_partyname(event):
+        resppp = check_GSTIN(compGSTIN.get())
+        if resppp:
+            compName.set(resppp)
+    
     label_10_11 = tk.Label(frame_1_2)
     label_10_11.config(text='Company GSTIN: ')
     label_10_11.pack(anchor='w', padx='20', side='top')
     entry_2_3 = tk.Entry(frame_1_2)
-    compGSTIN = tk.StringVar()
     entry_2_3.config(textvariable=compGSTIN)
     entry_2_3.pack(anchor='w', padx='40', side='top')
+    entry_2_3.bind('<FocusOut>',auto_partyname)
+    
+    label_9 = tk.Label(frame_1_2)
+    label_9.config(text='Company Name: ')
+    label_9.pack(anchor='w', padx='20', side='top')
+    entry_1 = tk.Entry(frame_1_2)
+    entry_1.config(textvariable=compName)
+    entry_1.pack(anchor='w', padx='40', side='top')
+    
+    
     button_1_2 = tk.Button(frame_1_2)
     button_1_2.config(text='Continue', command=partial(
         createCompDir, compName, compGSTIN))
