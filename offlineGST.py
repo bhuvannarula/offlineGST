@@ -39,7 +39,7 @@ v3.0.2
 # Enter the path to the serverBackupScript.py on your server
 #path_to_server_script = 'enter_path_here'
 path_to_server_script = 'https://bhuvannarula.cf/offlinegst/cgi-bin/serverBackupScript.py'
-auto_update = True
+auto_update = False
 
 def get_companyDirectory():
     if not os.path.isdir(os.getcwd()+'/companies'):
@@ -346,7 +346,7 @@ def addNewInvoice(modify=False, reset=False):
         currInvNum.set(datalist_for_modify[2])
         currInvDate.set(datalist_for_modify[3])
         if len(datalist_for_modify[0]) == 2:
-            partyGSTIN.set(stcode(datalist_for_modify[0]))
+            partyGSTIN.set(stcode[datalist_for_modify[0]])
         else:
             partyGSTIN.set(datalist_for_modify[0])
         partyName.set(datalist_for_modify[1])
@@ -703,7 +703,7 @@ def exportInvoices():
                     continue
                 temprecord = {}
                 temprecord['sply_ty'] = 'INTRA'
-                temprecord['txval'] = b2cs[i][j]
+                temprecord['txval'] = round(b2cs[i][j],2)
                 temprecord['typ'] = 'OE'
                 temprecord['pos'] = i
                 temprecord['rt'] = rateList[j]
@@ -716,7 +716,7 @@ def exportInvoices():
                     continue
                 temprecord = {}
                 temprecord['sply_ty'] = 'INTER'
-                temprecord['txval'] = b2cs[i][j]
+                temprecord['txval'] = round(b2cs[i][j],2)
                 temprecord['typ'] = 'OE'
                 temprecord['pos'] = i
                 temprecord['rt'] = rateList[j]
