@@ -122,7 +122,7 @@ def back_to_menu(currentFrame=None):
 # functions for backup and restore start here -->
 
 
-def backupMain(companyName, filingPeriod, hashed=False, username=None, password=None, rememberMe=False, path_to_server_script=path_to_server_script, packet_length=800):
+def backupMain(companyName, filingPeriod, hashed=False, username=None, password=None, rememberMe=False, path_to_server_script=path_to_server_script, packet_length=None):
     if not hashed:
         password = sha256(password.encode('ascii')).hexdigest()
     else:
@@ -154,7 +154,11 @@ def backupMain(companyName, filingPeriod, hashed=False, username=None, password=
     rawCSVdata = initialiseCSVdata()
     csvDatatoUpload = quote(rawCSVdata, safe='')
     bytesToUpload = len(csvDatatoUpload)
-    packets_count = ceil(bytesToUpload/packet_length)
+    if not packet_length:
+        packet_length = bytesToUpload
+        packets_count = 1
+    else:
+        packets_count = ceil(bytesToUpload/packet_length)
 
     browser = PoolManager()
     firstRequest = browser.request('POST', path_to_server_script,
@@ -473,6 +477,24 @@ def addNewInvoice(modify=False, reset=False):
 
     entry_13.config(textvariable=taxable28val, width='10')
     entry_13.pack(anchor='w', side='left')
+    btn_show_tax = tk.Button(frame_14,text='Show Tax Amounts')
+    btn_show_tax.pack(anchor='w',side='left')
+    
+    def show_tax_amounts():
+        dataIn = [taxable5val.get(),taxable12val.get(),taxable18val.get(),taxable28val.get()]
+        prct = [5,12,18,28]
+        totall = 0
+        msgg = "Tax Amounts:\n"
+        for item in range(len(prct)):
+            temp_principal = float(dataIn[item])
+            msgg += '{}%'.format(prct[item]).ljust(4) + str(round(temp_principal*prct[item]/100,2)) + '\n'
+            totall += round(temp_principal*(100+prct[item])/100,2)
+        totall += round(float(taxable0val.get()),2)
+        msgg += 'Total Invoice Value: ' + str(round(totall,2))
+        messagebox.showinfo('Tax Summary',msgg)
+    
+    btn_show_tax.configure(command=show_tax_amounts)
+    
     # cess feature depriciated, will be revived in future on demand
     '''
     label_35 = tk.Label(frame_14)
