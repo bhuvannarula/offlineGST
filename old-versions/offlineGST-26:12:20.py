@@ -295,7 +295,6 @@ def addNewInvoice(modify=False, reset=False):
         temp11 = re.search('[0]*([1-9]{1}[0-9]*)$',
                            pastInvoices[-1]).groups()[0]
         temp11_2 = fullmatch('([9]+)$', temp11)
-        pastInvoices.sort(reverse=False)
         if temp11_2 and pastInvoices[-1][-len(temp11_2.groups()[0])-1] == '0':
             currInvNum.set(
                 pastInvoices[-1][:-len(temp11_2.groups()[0])-1] + '1' + '0'*len(temp11_2.groups()[0]))
@@ -520,8 +519,8 @@ def addNewInvoice(modify=False, reset=False):
             os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName, sMonth), 'a+', newline='')
         csvWriter = csv.writer(csvFileIn)
         taxSeq = ['0', '5', '12', '18', '28']
-        totalInvValue = round(sum(list(
-            (100+float(taxSeq[i[0]]))*float(i[1])/100 for i in enumerate(taxamountlists))),2)
+        totalInvValue = sum(list(
+            (100+float(taxSeq[i[0]]))*float(i[1])/100 for i in enumerate(taxamountlists)))
         for taxItem in enumerate(taxamountlists):
             if taxItem[1] != 0:
                 pastInvoices.append(invNum.get())
