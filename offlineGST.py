@@ -56,7 +56,10 @@ toplevel_1 = tk.Tk(screenName='offlineGST',
                    baseName='offlineGST', className='offlineGST')
 toplevel_1.resizable(height=0, width=0)
 frame_0 = tk.Frame(toplevel_1, height=400, width=400)
-
+#ideal = 141 mm
+screendim = (toplevel_1.winfo_screenheight()/toplevel_1.winfo_screenmmheight())*141
+frame_0.configure(height=screendim, width=screendim)
+print(screendim)
 
 def check_for_update():
     if not auto_update:
@@ -1401,9 +1404,9 @@ def screen1():
         frame_1, optionVarSale, 'Sale', 'Purchase')
     menubutton_1Sale.pack(anchor='w', padx='50', side='top')
     
-    '''    label_5 = tk.Label(frame_1)
+    label_5 = tk.Label(frame_1)
     label_5.config(font='TkDefaultFont', text=' ')
-    label_5.pack(padx='180', side='top')'''
+    label_5.pack(padx='180', side='top')
     button_1 = tk.Button(frame_1)
     button_1.config(text='Continue')
     button_1.pack(anchor='w', side='top')
@@ -1416,7 +1419,7 @@ def screen1():
     label_6.config(text='\n')
     label_6.pack(side='top')
     frame_1.config(pady='10')
-    frame_1.place(x=50, y=25)
+    frame_1.place(x=50, y=50)
 
 
 frame_0.pack()
