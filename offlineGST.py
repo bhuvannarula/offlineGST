@@ -9,6 +9,7 @@ from shutil import rmtree
 from urllib import request
 import json
 import csv
+from datetime import datetime
 
 from hashlib import sha256
 from math import ceil
@@ -114,10 +115,10 @@ def back_to_homescreen(currentFrame):
     screen1()
 
 
-def back_to_menu(currentFrame=None):
+def back_to_menu(currentFrame=None, sale = True):
     if currentFrame:
         currentFrame.place_forget()
-    screen2()
+    screen2(sale=sale)
 
 # functions for backup and restore start here -->
 
@@ -259,10 +260,10 @@ def restoreMain(companyName, filingPeriod, hashed=False, username=None, password
 # backup and restore functions end here -->
 
 
-def get_current_month_summary():
+def get_current_month_summary(sale=True):
     global pastInvoices, invoiceNumDateDict  # pastGSTIN
     csvfileIn = open(
-        os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName, sMonth), 'r', newline='')
+        os.getcwd()+'/companies/{}/{}/GSTR{}.csv'.format(cName, sMonth, '1' if sale else '2'), 'r', newline='')
     tempReader = csv.reader(csvfileIn)
     next(tempReader, None)
     # Total Invoices, Total Taxbl Val, Total IGST, Total CGST/SGST
@@ -288,21 +289,22 @@ def get_current_month_summary():
     return data_summary
 
 
-def addNewInvoice(modify=False, reset=False):
+def addNewInvoice(modify=False, reset=False, sale=True):
     currInvNum = tk.StringVar()
     currInvDate = tk.StringVar()
     if len(pastInvoices) != 0:
-        temp11 = re.search('[0]*([1-9]{1}[0-9]*)$',
-                           pastInvoices[-1]).groups()[0]
-        temp11_2 = fullmatch('([9]+)$', temp11)
         pastInvoices.sort(reverse=False)
-        if temp11_2 and pastInvoices[-1][-len(temp11_2.groups()[0])-1] == '0':
-            currInvNum.set(
-                pastInvoices[-1][:-len(temp11_2.groups()[0])-1] + '1' + '0'*len(temp11_2.groups()[0]))
-        else:
-            currInvNum.set(
-                pastInvoices[-1].split(temp11)[0]+str(int(temp11)+1))
-        # currInvNum.set(pastInvoices[-1][:-1]+str(int(pastInvoices[-1][-1])+1))
+        if sale:
+            temp11 = re.search('[0]*([1-9]{1}[0-9]*)$',
+                            pastInvoices[-1]).groups()[0]
+            temp11_2 = fullmatch('([9]+)$', temp11)
+            if temp11_2 and pastInvoices[-1][-len(temp11_2.groups()[0])-1] == '0':
+                currInvNum.set(
+                    pastInvoices[-1][:-len(temp11_2.groups()[0])-1] + '1' + '0'*len(temp11_2.groups()[0]))
+            else:
+                currInvNum.set(
+                    pastInvoices[-1].split(temp11)[0]+str(int(temp11)+1))
+            # currInvNum.set(pastInvoices[-1][:-1]+str(int(pastInvoices[-1][-1])+1))
         currInvDate.set(invoiceNumDateDict[pastInvoices[-1]])
     partyGSTIN = tk.StringVar()
     partyName = tk.StringVar()
@@ -323,14 +325,14 @@ def addNewInvoice(modify=False, reset=False):
                     font='{Helventica} 36 {}', text='offlineGST')
     label_12.pack(anchor='w', side='top')
     label_13 = tk.Label(frame_3)
-    label_13.config(font='{Helventica} 13 {italic}', text='Add New Invoice:')
+    label_13.config(font='{Helventica} 13 {italic}', text='Add New Invoice: ({} Invoice)'.format('Sale' if sale else 'Purchase'))
 
     frame_16 = tk.Frame(frame_3)
     button_5 = tk.Button(frame_16)
     if modify:
         label_13.config(text='Modify Old Invoice:')
         csvFileIn = open(
-            os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName, sMonth), 'r+', newline='')
+            os.getcwd()+'/companies/{}/{}/GSTR{}.csv'.format(cName, sMonth, '1' if sale else '2'), 'r+', newline='')
         csvReaderData = list(csv.reader(csvFileIn))
         taxSeq = ['0', '5', '12', '18', '28']
         csvFileIn.seek(0)
@@ -372,11 +374,31 @@ def addNewInvoice(modify=False, reset=False):
     label_16.pack(anchor='w', side='left')
     entry_5 = tk.Entry(frame_4)
 
-    entry_5.config(textvariable=currInvNum)
+    entry_5.config(textvariable=currInvNum, width = 18)
     _text_ = currInvNum.get()
     entry_5.delete('0', 'end')
     entry_5.insert('0', _text_)
-    entry_5.pack(anchor='w', side='top')
+    entry_5.pack(anchor='w', side='left')
+    
+    def inc_num_fn():
+        if currInvNum.get() in ('None',None,''):
+            return None
+        temp11 = re.search('[0]*([1-9]{1}[0-9]*)$',
+                        currInvNum.get()).groups()[0]
+        temp11_2 = fullmatch('([9]+)$', temp11)
+        if temp11_2 and len(temp11_2.groups()[0]) == len(currInvNum.get()):
+            # TODO if invNum == '99', make it '100', 'A99' will not be converted to 'A100'
+            pass
+        elif temp11_2 and currInvNum.get()[-len(temp11_2.groups()[0])-1] == '0':
+            currInvNum.set(
+                currInvNum.get()[:-len(temp11_2.groups()[0])-1] + '1' + '0'*len(temp11_2.groups()[0]))
+        else:
+            currInvNum.set(
+                currInvNum.get().split(temp11)[0]+str(int(temp11)+1))
+    
+    inc_num_btn = tk.Button(frame_4, text='+', command = inc_num_fn)
+    inc_num_btn.pack(anchor='w',side='left')
+    
     frame_4.config(height='200', width='200')
     frame_4.pack(anchor='w', padx='10', side='top')
     frame_5 = tk.Frame(frame_3)
@@ -384,9 +406,48 @@ def addNewInvoice(modify=False, reset=False):
     label_18.config(text='Invoice Date (dd/mm/yyyy):')
     label_18.pack(anchor='w', side='left')
     entry_6 = tk.Entry(frame_5)
-
     entry_6.config(textvariable=currInvDate, width='10')
-    entry_6.pack(anchor='w', side='top')
+    entry_6.pack(anchor='w', side='left')
+    
+    def make_it_double(strnum):
+        strnum = str(strnum)
+        if len(strnum) == 2:
+            return str(strnum)
+        elif len(strnum) == 1:
+            return '0' + strnum
+    
+    def inc_date_fn():
+        if currInvDate.get() in ('None',None,''):
+            currInvDate.set('01/'+sMonth.replace('-','/'))
+        elif re.fullmatch('[0-9]{2}/[0-9]{2}/[0-9]{4}',currInvDate.get()):
+            #below code will increment date by 1 day
+            #following will not give error unless it is year 2100
+            curdatesel = currInvDate.get().split('/')
+            monthDays = [31,29 if int(curdatesel[-1])%4 == 0 else 28, 31,30,31,30,31,31,30,31,30,31]
+            '''
+            if re.fullmatch('0[1-8]',curdatesel[0]):
+                curdatesel[0] = '0'+str(int(float(curdatesel[0]))+1)
+            elif curdatesel[0] == '09':
+                curdatesel[0] = '10'
+            else:
+                pass
+            '''
+            tempday = int(curdatesel[0])+1
+            if tempday-1 == monthDays[int(float(curdatesel[1]))-1]:
+                curdatesel[0] = '01'
+                curdatesel[1] = make_it_double(str(int(float(curdatesel[1])) + 1))
+                if curdatesel[1] == '13':
+                    curdatesel[1] = '01'
+                    curdatesel[2] = str(int(float(curdatesel[2]))+1)
+            else:
+                curdatesel[0] = make_it_double(tempday)
+            curdatesel = '/'.join(curdatesel)
+            currInvDate.set(curdatesel)
+            entry_6.delete('0', 'end')
+            entry_6.insert('0',curdatesel)
+    inc_date_btn = tk.Button(frame_5, text='+',command=inc_date_fn)
+    inc_date_btn.pack(anchor='w',side='left')
+    
     frame_5.config(height='200', width='200')
     frame_5.pack(anchor='w', padx='10', side='top')
     frame_6 = tk.Frame(frame_3)
@@ -509,7 +570,7 @@ def addNewInvoice(modify=False, reset=False):
     frame_14.pack(anchor='w', padx='20', side='top')
     #frame_16 = tk.Frame(frame_3)
     #button_5 = tk.Button(frame_16)
-    button_5.config(text='Go Back', command=lambda: back_to_menu(frame_3))
+    button_5.config(text='Go Back', command=lambda: back_to_menu(frame_3, sale))
     button_5.pack(anchor='w', side='left')
 
     def showError(message):
@@ -517,7 +578,7 @@ def addNewInvoice(modify=False, reset=False):
 
     def push_data_to_excel(invNum, invDate, partyGSTIN, partyName, taxamountlists):
         csvFileIn = open(
-            os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName, sMonth), 'a+', newline='')
+            os.getcwd()+'/companies/{}/{}/GSTR{}.csv'.format(cName, sMonth, '1' if sale else '2'), 'a+', newline='')
         csvWriter = csv.writer(csvFileIn)
         taxSeq = ['0', '5', '12', '18', '28']
         totalInvValue = round(sum(list(
@@ -592,7 +653,7 @@ def addNewInvoice(modify=False, reset=False):
                 entry_5.insert('0', respNumDate[0])
                 entry_6.insert('0', respNumDate[1])
             else:
-                back_to_menu(frame_3)
+                back_to_menu(frame_3, sale=sale)
     button_6 = tk.Button(frame_16)
     button_6.config(text='Proceed', command=check_valid_newInvoice_input)
     button_6.pack(padx='10', side='top')
@@ -605,7 +666,7 @@ def addNewInvoice(modify=False, reset=False):
     frame_3.place(x=0, y=0)
 
 
-def deleteInvoice(invNums):
+def deleteInvoice(invNums, sale = True):
     confirmresp = messagebox._show('Warning!', 'Invoices with following Invoice Numbers will be deleted: \n{}\n Are you sure?'.format(
         invNums), _icon='warning', _type=messagebox.YESNO)
     if confirmresp.lower() not in ('yes', 'y'):
@@ -619,7 +680,7 @@ def deleteInvoice(invNums):
         messagebox.showerror(
             'Error!', 'Following invoices were not found: \n{}\nOther Invoices (if any) will be deleted.'.format(', '.join(notFound)))
     csvFileIn = open(
-        os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName, sMonth), 'r+', newline='')
+        os.getcwd()+'/companies/{}/{}/GSTR{}.csv'.format(cName, sMonth, '1' if sale else '2'), 'r+', newline='')
     csvReader = csv.reader(csvFileIn)
     csvReaderList = []
     for item in csvReader:
@@ -767,15 +828,15 @@ def exportInvoices():
     return True
 
 
-def action_perform(todoAction):
+def action_perform(todoAction, sale = True):
     if todoAction == 'Add New Invoice':
-        addNewInvoice()
+        addNewInvoice(sale=sale)
     elif todoAction == 'Delete Invoice(s)':
         invNums = simpledialog.askstring(
             'Delete Invoice(s)', 'Enter Invoice Numbers of Invoices to be deleted, separated by "," like 100,200,300')
         if not invNums in ('', None, 'None'):
-            deleteInvoice(invNums)
-        back_to_menu()
+            deleteInvoice(invNums, sale=sale)
+        back_to_menu(sale=sale)
     elif todoAction == 'Modify Invoice':
         while True:
             invNumModify = simpledialog.askstring(
@@ -788,9 +849,9 @@ def action_perform(todoAction):
             else:
                 break
         if invNumModify == None:
-            back_to_menu()
+            back_to_menu(sale=sale)
         else:
-            addNewInvoice(modify=invNumModify)
+            addNewInvoice(modify=invNumModify, sale=sale)
     elif todoAction == 'Export Invoices':
         resp1 = messagebox._show(
             'Are you sure?', 'The invoices will be exported. Are you sure you want to continue?', _icon='info', _type=messagebox.YESNO)
@@ -799,9 +860,9 @@ def action_perform(todoAction):
             if resp2:
                 messagebox.showinfo(
                     'Success!', 'The invoices have been exported successfully, and JSON file is now present in "export" folder. ')
-                back_to_menu()
+                back_to_menu(sale=sale)
         else:
-            back_to_menu()
+            back_to_menu(sale=sale)
     elif todoAction == 'Backup Invoices':
         messagebox._show('Caution', 'The invoices of selected period will be uploaded to cloud.',
                          _icon='info', _type=messagebox.OK)
@@ -829,7 +890,7 @@ def action_perform(todoAction):
                             break
                         break
                     if kr:
-                        back_to_menu()
+                        back_to_menu(sale=sale)
                     respregisternew = registerNewUserCloud(
                         credd_user, credd_pass)
                     if respregisternew:
@@ -838,7 +899,7 @@ def action_perform(todoAction):
                     else:
                         messagebox.showerror(
                             'Failed!', 'New User Registeration failed!')
-                    back_to_menu()
+                    back_to_menu(sale=sale)
                 else:
                     kk = False
                     while True:
@@ -860,7 +921,7 @@ def action_perform(todoAction):
                             'Remember Me!', 'Do you want to save your credentials?')
                         break
                     if kk:
-                        back_to_menu()
+                        back_to_menu(sale=sale)
                     else:
                         messagebox._show(
                             'Processing', 'Invoices are being uploaded\nto cloud. Press OK', _icon='info', _type=messagebox.OK)
@@ -869,11 +930,11 @@ def action_perform(todoAction):
                         if type(respbkup) == list:
                             messagebox._show(
                                 'Error', respbkup[0], _icon='error', _type=messagebox.OK)
-                            back_to_menu()
+                            back_to_menu(sale=sale)
                         elif type(respbkup) == bool and respbkup == True:
                             messagebox.showinfo(
                                 'Success', 'Data was successfully uploaded to cloud and will be available to restore.')
-                            back_to_menu()
+                            back_to_menu(sale=sale)
             else:
                 messagebox._show(
                     'Processing', 'Invoices are being uploaded\nto cloud. Press OK', _icon='info', _type=messagebox.OK)
@@ -881,11 +942,11 @@ def action_perform(todoAction):
                 if type(respbkup) == list:
                     messagebox._show(
                         'Error', respbkup[0], _icon='error', _type=messagebox.OK)
-                    back_to_menu()
+                    back_to_menu(sale=sale)
                 elif type(respbkup) == bool and respbkup == True:
                     messagebox.showinfo(
                         'Success', 'Data was successfully uploaded to cloud and will be available to restore.')
-                    back_to_menu()
+                    back_to_menu(sale=sale)
     elif todoAction == 'Restore Invoices':
         messagebox._show('Caution', 'The invoices of selected period will be restored from cloud.',
                          _icon='info', _type=messagebox.OK)
@@ -913,7 +974,7 @@ def action_perform(todoAction):
                             break
                         break
                     if kr:
-                        back_to_menu()
+                        back_to_menu(sale=sale)
                     respregisternew = registerNewUserCloud(
                         credd_user, credd_pass)
                     if respregisternew:
@@ -922,7 +983,7 @@ def action_perform(todoAction):
                     else:
                         messagebox.showerror(
                             'Failed!', 'New User Registeration failed!')
-                        back_to_menu()
+                        back_to_menu(sale=sale)
                 else:
                     kk = False
                     while True:
@@ -944,7 +1005,7 @@ def action_perform(todoAction):
                             'Remember Me!', 'Do you want to save your credentials?')
                         break
                     if kk:
-                        back_to_menu()
+                        back_to_menu(sale=sale)
                     else:
                         messagebox._show(
                             'Processing', 'Invoices are being downloaded\nfrom cloud. Press OK', _icon='info', _type=messagebox.OK)
@@ -953,11 +1014,11 @@ def action_perform(todoAction):
                         if type(respbkup) == list:
                             messagebox._show(
                                 'Error', respbkup[0], _icon='error', _type=messagebox.OK)
-                            back_to_menu()
+                            back_to_menu(sale=sale)
                         elif type(respbkup) == bool and respbkup == True:
                             messagebox.showinfo(
                                 'Success', 'Data was successfully downloaded from cloud and is available in offline utility.')
-                            back_to_menu()
+                            back_to_menu(sale=sale)
             else:
                 messagebox._show(
                     'Processing', 'Invoices are being downloaded\nfrom cloud. Press OK', _icon='info', _type=messagebox.OK)
@@ -965,14 +1026,14 @@ def action_perform(todoAction):
                 if type(respbkup) == list:
                     messagebox._show(
                         'Error', respbkup[0], _icon='error', _type=messagebox.OK)
-                    back_to_menu()
+                    back_to_menu(sale=sale)
                 elif type(respbkup) == bool and respbkup == True:
                     messagebox.showinfo(
                         'Success', 'Data was successfully downloaded from cloud and is available in offline utility.')
-                    back_to_menu()
+                    back_to_menu(sale=sale)
 
 
-def screen2():
+def screen2(sale = True):
     global frame_7
     frame_7 = tk.Frame(frame_0, height=400, width=400)
     label_7 = tk.Label(frame_7)
@@ -990,11 +1051,11 @@ def screen2():
     widthframe_1_2.pack(side='top')
     label_7b = tk.Label(frame_7)
     label_7b.config(
-        cursor='arrow', font='{Helventica} 20 {bold}', text='Summary:')
+        cursor='arrow', font='{Helventica} 20 {bold}', text='Summary: ({})'.format('Sale' if sale else 'Purchase'))
     label_7b.pack(anchor='w', side='top')
     label_11 = tk.Label(frame_7)
     label_11.config(takefocus=False, justify='left',
-                    text='Total Invoices: {}\nTotal Taxable Value: {}\nTotal IGST Amount: {}\nTotal CGST/SGST Amount: {}'.format(*get_current_month_summary()))
+                    text='Total Invoices: {}\nTotal Taxable Value: {}\nTotal IGST Amount: {}\nTotal CGST/SGST Amount: {}'.format(*get_current_month_summary(sale=sale)))
     label_11.pack(anchor='w', padx=10, side='top')
 
     widthframe_1_2 = tk.Frame(frame_7, width=400, height=20)
@@ -1022,7 +1083,7 @@ def screen2():
                 'Action Error!', 'No Action selected, please select one to proceed.')
         else:
             frame_7.place_forget()
-            action_perform(action_to_perform.get())
+            action_perform(action_to_perform.get(), sale)
     button_5 = tk.Button(
         frame_7, command=lambda: back_to_homescreen(frame_7), text='Go Back')
     button_5.pack(padx=10, side='left', anchor='w')
@@ -1053,6 +1114,14 @@ def initialiseCompany(cName, sMonth):
                      'Place Of Supply', 'Invoice Type', 'Rate', 'Taxable Amount', 'Cess Amount']
         tempWriter.writerow(headerRow)
         tempCSVFileIn.close()
+    if not os.path.isfile(os.getcwd()+'/companies/{}/{}/GSTR2.csv'.format(cName, sMonth)):
+        tempCSVFileIn = open(
+            os.getcwd()+'/companies/{}/{}/GSTR2.csv'.format(cName, sMonth), 'w', newline='')
+        tempWriter = csv.writer(tempCSVFileIn)
+        headerRow = ['GSTIN', 'Supplier Name', 'Invoice Number', 'Invoice Date', 'Invoice Value',
+                     'Place Of Supply', 'Invoice Type', 'Rate', 'Taxable Amount', 'Cess Amount']
+        tempWriter.writerow(headerRow)
+        tempCSVFileIn.close()    
     # store gstins into PAST_GSTINS file
     global tempPASTGSTIN
     if not os.path.isfile(os.getcwd()+'/companies/{}/.PAST_GSTINS'.format(cName)):
@@ -1159,19 +1228,45 @@ def screen1():
         return None
     global cName, sMonth
 
-    def openMainMenu(companyName, selectedMonth):
+    def openMainMenu(companyName, selectedMonth, salemode):
         global cName, sMonth
-        companyName, selectedMonth = companyName.get(), selectedMonth.get()
-        if companyName == '-Select-' or not re.fullmatch('[0-9]{2}/[0-9]{4}', selectedMonth):
-            messagebox.showerror('Error!', 'No Company/Month Selected!')
+        companyName, selMonth, salemod = companyName.get(), str(selectedMonth.get()), salemode.get()
+        if companyName == '-Select-': # or not re.fullmatch('[0-9]{2}/[0-9]{4}', selectedMonth):
+            messagebox.showerror('Error!', 'No Company Selected!')
         else:
+            presentyear = datetime.now().year
+            if re.fullmatch('[1-9]',selMonth):
+                selMonth = '0{}/{}'.format(selMonth, presentyear)
+                selectedMonth.set(selMonth)
+            elif re.fullmatch('[1-9]/[0-9]{2}',selMonth):
+                selMonth = '0' + selMonth
+                selMonth = selMonth.split('/')
+                selMonth[-1] = '/20' + selMonth[-1]
+                selMonth = ''.join(selMonth)
+                selectedMonth.set(selMonth)                
+            elif re.fullmatch('[0-1][1-9]',selMonth):
+                selMonth = '{}/{}'.format(selMonth, presentyear)
+                selectedMonth.set(selMonth)
+            elif re.fullmatch('[0-1][1-9]/[0-9]{2}',selMonth):
+                selMonth = selMonth.split('/')
+                selMonth[-1] = '/20' + selMonth[-1]
+                selMonth = ''.join(selMonth)
+                selectedMonth.set(selMonth)
+            elif re.fullmatch('[0-9]{2}/[0-9]{4}', selMonth):
+                selMonth = selMonth
+                selectedMonth.set(selMonth)
+            else:
+                messagebox.showerror('Invalid Month Selected!')
+                return None
             cName, sMonth = str(
-                companyName), '-'.join(str(selectedMonth).split('/'))
+                companyName), '-'.join(str(selMonth).split('/'))
             # frame_1.place_forget()
             resp1 = initialiseCompany(cName, sMonth)
             if resp1:
+                print(salemod)
+                sale = True if salemod == 'Sale' else False
                 frame_1.place_forget()
-                screen2()
+                screen2(sale)
 
     def createCompany0():
         frame_1.place_forget()
@@ -1194,7 +1289,7 @@ def screen1():
         frame_1, optionVar, '-Select-', *get_companyDirectory())
     menubutton_1.pack(anchor='w', padx='50', side='top')
     label_4 = tk.Label(frame_1)
-    label_4.config(text='Enter Month (mm/yyyy): ')
+    label_4.config(text='Enter Month: ')
     label_4.pack(anchor='w', side='top')
     entry_2 = tk.Entry(frame_1)
     selectedMonth = tk.StringVar('')
@@ -1203,13 +1298,22 @@ def screen1():
     entry_2.delete('0', 'end')
     entry_2.insert('0', _text_)
     entry_2.pack(anchor='w', padx='50', side='top')
+    
+    label_3sale = tk.Label(frame_1)
+    label_3sale.config(text='Select Invoice Mode: ')
+    label_3sale.pack(anchor='w', side='top')
+    optionVarSale = tk.StringVar(frame_1, 'Sale')
+    menubutton_1Sale = tk.OptionMenu(
+        frame_1, optionVarSale, 'Sale', 'Purchase')
+    menubutton_1Sale.pack(anchor='w', padx='50', side='top')
+    
     label_5 = tk.Label(frame_1)
     label_5.config(font='TkDefaultFont', text=' ')
     label_5.pack(padx='180', side='top')
     button_1 = tk.Button(frame_1)
     button_1.config(text='Continue')
     button_1.pack(anchor='w', side='top')
-    button_1.configure(command=partial(openMainMenu, optionVar, selectedMonth))
+    button_1.configure(command=partial(openMainMenu, optionVar, selectedMonth, optionVarSale))
     button_2 = tk.Button(frame_1)
 
     button_2.config(text='Create New Company', command=createCompany0)
