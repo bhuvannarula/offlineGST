@@ -59,7 +59,6 @@ frame_0 = tk.Frame(toplevel_1, height=400, width=400)
 #ideal = 141 mm
 screendim = (toplevel_1.winfo_screenheight()/toplevel_1.winfo_screenmmheight())*141
 frame_0.configure(height=screendim, width=screendim)
-print(screendim)
 
 def check_for_update():
     if not auto_update:
@@ -323,7 +322,7 @@ def addNewInvoice(modify=False, reset=False, sale=True):
     if reset == True:
         return currInvNum.get(), currInvDate.get()
 
-    frame_3 = tk.Frame(frame_0, height=400, width=400)
+    frame_3 = tk.Frame(frame_0, height=screendim, width=screendim)
     label_12 = tk.Label(frame_3)
     label_12.config(background='LightBlue',
                     font='{Helventica} 36 {}', text='offlineGST')
@@ -663,9 +662,9 @@ def addNewInvoice(modify=False, reset=False, sale=True):
     button_6.pack(padx='10', side='top')
     frame_16.config(height='200', width='200')
     frame_16.pack(anchor='w', padx='10', pady='10', side='top')
-    frame_3.config(height='400', takefocus=True, width='400')
+    frame_3.config(height=screendim, takefocus=True, width=screendim)
     frame_3.pack(side='top')
-    frame_3.config(height='400', takefocus=True, width='400')
+    frame_3.config(height=screendim, takefocus=True, width=screendim)
     frame_3.pack(side='top')
     frame_3.place(x=0, y=0)
 
@@ -1133,7 +1132,7 @@ def action_perform(todoAction, sale = True):
 
 def screen2(sale = True):
     global frame_7
-    frame_7 = tk.Frame(frame_0, height=400, width=400)
+    frame_7 = tk.Frame(frame_0, height=screendim, width=screendim)
     label_7 = tk.Label(frame_7)
     label_7.config(
         cursor='arrow', font='{Helventica} 36 {}', text='offlineGST', bg=headingcolor1)
@@ -1145,7 +1144,7 @@ def screen2(sale = True):
     label_1_2 = tk.Label(frame_7)
     label_1_2.config(text='Month: {}'.format(sMonth))
     label_1_2.pack(anchor='e', side='top')
-    widthframe_1_2 = tk.Frame(frame_7, width=400)
+    widthframe_1_2 = tk.Frame(frame_7, width=screendim)
     widthframe_1_2.pack(side='top')
     label_7b = tk.Label(frame_7)
     label_7b.config(
@@ -1156,7 +1155,7 @@ def screen2(sale = True):
                     text='Total Invoices: {}\nTotal Taxable Value: {}\nTotal IGST Amount: {}\nTotal CGST/SGST Amount: {}'.format(*get_current_month_summary(sale=sale)))
     label_11.pack(anchor='w', padx=10, side='top')
 
-    widthframe_1_2 = tk.Frame(frame_7, width=400, height=20)
+    widthframe_1_2 = tk.Frame(frame_7, width=screendim, height=20)
     widthframe_1_2.pack(side='top')
     label_12 = tk.Label(frame_7)
     label_12.config(
@@ -1190,7 +1189,7 @@ def screen2(sale = True):
         action_to_perform), text='Proceed')
     buttom_5pre.pack(padx=10, side='top', anchor='w')
 
-    frame_7.config(height='400', width='400')
+    frame_7.config(height=screendim, width=screendim)
     frame_7.place(x=0, y=0)
 
 
@@ -1277,7 +1276,7 @@ def createCompDir(cName, cGSTIN):
 
 def createCompany():
     global frame_1_2
-    frame_1_2 = tk.Frame(frame_0, height=400, width=400)
+    frame_1_2 = tk.Frame(frame_0, height=screendim, width=screendim)
     label_5_6 = tk.Label(frame_1_2)
     label_5_6.config(font='{Helventica} 36 {}',
                      text='offlineGST', bg=headingcolor1)
