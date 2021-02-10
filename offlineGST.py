@@ -188,7 +188,7 @@ def backupMain(companyName, filingPeriod, hashed=False, username=None, password=
                                               'hobbitage': str(curr_packet+1),
                                               'folklores': str(tempCSVbuffer)}
                                       )
-        print(str(packetsSend.data[:-1].decode('utf-8')))
+        #print(str(packetsSend.data[:-1].decode('utf-8')))
         if 'Received' not in str(packetsSend.data[:-1].decode('utf-8')):
             return ['Packet Lost! Backup Failed!']
         if 'Successful' in str(packetsSend.data[:-1].decode('utf-8')):
@@ -284,8 +284,8 @@ def get_current_month_summary(sale=True):
     data_summary[0] = len(set(pastInvoices))
     for i in range(1,len(data_summary)):
         data_summary[i] = round(data_summary[i],2)
-    pastInvoices.sort(key=lambda var: int(
-        re.search('([0-9]+)$', var).groups()[0]))
+    pastInvoices.sort(key=lambda var: int(float(
+        re.search('([0-9]+)$', var).groups()[0])))
     return data_summary
 
 
@@ -293,7 +293,8 @@ def addNewInvoice(modify=False, reset=False, sale=True):
     currInvNum = tk.StringVar()
     currInvDate = tk.StringVar()
     if len(pastInvoices) != 0:
-        pastInvoices.sort(reverse=False)
+        pastInvoices.sort(key=lambda var: int(float(
+            re.search('([0-9]+)$', var).groups()[0])))
         if sale:
             temp11 = re.search('[0]*([1-9]{1}[0-9]*)$',
                             pastInvoices[-1]).groups()[0]
@@ -696,28 +697,91 @@ def deleteInvoice(invNums, sale = True):
 
 
 def exportInvoices():
-    csvFileIn = open(
-        os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName, sMonth), newline='')
-    csvFileReader = list(csv.reader(csvFileIn))
-    csvFileReader = csvFileReader[1:]
-    b2bdata = []
-    b2btaxable = [0, 0, 0]  # taxable, cgst, igst
-    b2cs = {}
-    taxRate = ['0', '5', '12', '18', '28']
+    def summarizeCSV(selMonth):
+        csvFileIn = open(
+            os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName, selMonth), newline='')
+        csvFileReader = list(csv.reader(csvFileIn))
+        csvFileReader = csvFileReader[1:]
+        b2bdata = []
+        b2cs = {}
+        taxRate = ['0', '5', '12', '18', '28']
 
-    for item in csvFileReader:
-        if is_GSTIN(item[0]):
-            b2bdata.append(item)
-            b2btaxable[0] += round(float(item[8]), 2)
-            if companyGSTIN[:2] == item[0][:2]:
-                b2btaxable[1] += round(float(item[8])*float(item[7])/200, 2)
+        for item in csvFileReader:
+            if is_GSTIN(item[0]):
+                b2bdata.append(item)
             else:
-                b2btaxable[2] += round(float(item[8])*float(item[7])/100, 2)
-        else:
-            if item[0] not in b2cs:
-                b2cs[item[0]] = [0, 0, 0, 0, 0]
-            b2cs[item[0]][taxRate.index(item[7])] += round(float(item[8]), 2)
-
+                if item[0] not in b2cs:
+                    b2cs[item[0]] = [0, 0, 0, 0, 0]
+                b2cs[item[0]][taxRate.index(item[7])] += round(float(item[8]), 2)
+        csvFileIn.close()
+        return b2bdata, b2cs
+    '''
+    TODO - done implementing
+    - ask for count of credit, debit notes, etc
+    - find count of invoices from start to stop
+    
+    new TODO
+    - ask if company is Quarterly or Monthly
+    - export accordingly
+    '''
+    respFreq = messagebox.askyesno('Export as JSON', '{}\n{} - Quarterly or Monthly?\nQuarterly - Select Yes\nMonthly - Select No'.format(cName, sMonth))
+    
+    #initialising JSON data
+    finalJSON = {}
+    finalJSON['gstin'] = companyGSTIN
+    finalJSON['fp'] = sMonth.replace('-', '')
+        
+    if respFreq and int(float(sMonth[:2]))%3 == 0:
+        msgforextradocs = 'Enter count of docs (credit/debit notes, etc.)\nissued other than sale invoices entered here\nin this Quarter ending {} (0 for None)'.format(sMonth)
+    elif not respFreq:
+        msgforextradocs = 'Enter count of docs (credit/debit notes, etc.)\nissued other than sale invoices entered here\nfor current month {} (0 for None)'.format(sMonth)
+    
+    if (respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq):
+        extradocs = simpledialog.askstring('Export as JSON', msgforextradocs)
+        currmondata = get_current_month_summary(sale=True)
+        pastInvoices.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
+        invEndPoints = pastInvoices[0], pastInvoices[-1]
+        
+        respFinalCall = messagebox.askyesno('Docs Count','Invoices of selected {} start from\n{} and end on {}, Is this correct?'.format(
+                            'month' if not respFreq else 'quarter', *invEndPoints))
+        if not respFinalCall:
+            invEndPoints = (simpledialog.askstring('Count Correction','Enter Starting Invoice No.\n(Do not cancel)'), 
+                        simpledialog.askstring('Count Correction','Enter Ending Invoice No.\n(Do not cancel)'))
+        
+        invEndCounts = re.search('([0-9]+)$', invEndPoints[0]).groups()[0], re.search('([0-9]+)$', invEndPoints[1]).groups()[0]
+        totalInvIssued = int(currmondata[0])
+        totalInvCounted = int(invEndCounts[1]) - int(invEndCounts[0]) + 1
+        
+        doc_issue = {
+            "doc_det": [
+        {
+            "doc_num": 1,
+            "docs": [
+            {
+                "num": 1,
+                "from": str(pastInvoices[0]),
+                "to": str(pastInvoices[-1]),
+                "totnum": totalInvCounted + int(extradocs),
+                "cancel": totalInvCounted - totalInvIssued,
+                "net_issue": totalInvIssued + int(extradocs)
+            }
+            ]
+        }]}
+        finalJSON['doc_issue'] = doc_issue
+        extramsgexport = '''\n
+Export Summary:
+    Sale Invoices (other than cancelled) : {}
+    Docs Issued (including cancelled): {}
+    Docs Cancelled : {}
+    Net Docs Issued : {}'''.format(totalInvIssued, 
+                                    totalInvCounted + int(extradocs), 
+                                    totalInvCounted - totalInvIssued, 
+                                    totalInvIssued + int(extradocs))
+    else:
+        extramsgexport = ''
+    #summarising gstr1 csv data
+    b2bdata, b2cs = summarizeCSV(sMonth)
+    
     try:
         os.mkdir(os.getcwd()+'/export')
     except:
@@ -776,57 +840,90 @@ def exportInvoices():
             b2bObject[-1]['inv'].append(tempBill)
 
     # b2b to json ends here
-
-    # b2cs to json starts here
-    b2csfinaldata = []
-    rateList = [0, 5, 12, 18, 28]
-    for i in b2cs:
-        for j in range(len(b2cs[i])):
-            if i == companyGSTIN[:2]:
-                if int(b2cs[i][j]) == 0:
-                    continue
-                temprecord = {}
-                temprecord['sply_ty'] = 'INTRA'
-                temprecord['txval'] = round(b2cs[i][j],2)
-                temprecord['typ'] = 'OE'
-                temprecord['pos'] = i
-                temprecord['rt'] = rateList[j]
-                temprecord['iamt'] = 0
-                temprecord['camt'] = round(b2cs[i][j]*rateList[j]/200,2)
-                temprecord['samt'] = round(temprecord['camt'],2)
-                temprecord['csamt'] = 0
-            else:
-                if int(b2cs[i][j]) == 0:
-                    continue
-                temprecord = {}
-                temprecord['sply_ty'] = 'INTER'
-                temprecord['txval'] = round(b2cs[i][j],2)
-                temprecord['typ'] = 'OE'
-                temprecord['pos'] = i
-                temprecord['rt'] = rateList[j]
-                temprecord['iamt'] = round(b2cs[i][j]*rateList[j]/100,2)
-                temprecord['camt'] = 0
-                temprecord['samt'] = 0
-                temprecord['csamt'] = 0
-            b2csfinaldata.append(temprecord)
-
-    # b2cs to json ends here
-    finalJSON = {}
-    finalJSON['gstin'] = companyGSTIN
-    finalJSON['fp'] = sMonth.replace('-', '')
     if b2bObject != []:
         finalJSON['b2b'] = b2bObject
+    
+    # b2cs to json starts here
+    if respFreq and int(float(sMonth[:2]))%3 == 0:
+        Qcond = -2
+    elif respFreq:
+        Qcond = 1
+    elif not respFreq:
+        Qcond = 0
+        
+    masterb2cs = []
+    for i in range(Qcond,1,1):
+        newMonth = sMonth[0] + str(int(sMonth[1]) + i) + sMonth[2:]
+        b2cs = summarizeCSV(newMonth)[-1]
+        b2csfinaldata = []
+        rateList = [0, 5, 12, 18, 28]
+        for i in b2cs:
+            for j in range(len(b2cs[i])):
+                if i == companyGSTIN[:2]:
+                    if int(b2cs[i][j]) == 0:
+                        continue
+                    temprecord = {}
+                    temprecord['sply_ty'] = 'INTRA'
+                    temprecord['txval'] = round(b2cs[i][j],2)
+                    temprecord['typ'] = 'OE'
+                    temprecord['pos'] = i
+                    temprecord['rt'] = rateList[j]
+                    temprecord['iamt'] = 0
+                    temprecord['camt'] = round(b2cs[i][j]*rateList[j]/200,2)
+                    temprecord['samt'] = round(temprecord['camt'],2)
+                    temprecord['csamt'] = 0
+                else:
+                    if int(b2cs[i][j]) == 0:
+                        continue
+                    temprecord = {}
+                    temprecord['sply_ty'] = 'INTER'
+                    temprecord['txval'] = round(b2cs[i][j],2)
+                    temprecord['typ'] = 'OE'
+                    temprecord['pos'] = i
+                    temprecord['rt'] = rateList[j]
+                    temprecord['iamt'] = round(b2cs[i][j]*rateList[j]/100,2)
+                    temprecord['camt'] = 0
+                    temprecord['samt'] = 0
+                    temprecord['csamt'] = 0
+                b2csfinaldata.append(temprecord)
+        masterb2cs.append(b2csfinaldata)
+
+    def getPOSrate(datadict):
+        return datadict['pos'], datadict['rt']
+    def addtwodata(datadict1, datadict2):
+        for kk in ['txval','iamt','camt','samt','csamt']:
+            datadict1[kk] = round(datadict1[kk] + datadict2[kk], 2)
+        return datadict1
+    
+    if masterb2cs:
+        b2csfinaldata = masterb2cs[0]
+        masterb2cssum1 = list(getPOSrate(i) for i in masterb2cs[0])
+        if len(masterb2cs) == 3:
+            for i in range(1,3):
+                for item in masterb2cs[i]:
+                    if getPOSrate(item) in masterb2cssum1:
+                        b2csfinaldata[masterb2cssum1.index(getPOSrate(item))] = addtwodata(item, b2csfinaldata[masterb2cssum1.index(getPOSrate(item))])
+                    else:
+                        b2csfinaldata.append(item)
+                        masterb2cssum1.append(getPOSrate(item))
+    else:
+        b2csfinaldata = []
+    # b2cs to json ends here
     if b2csfinaldata != []:
         finalJSON['b2cs'] = b2csfinaldata
+
     finalJSON['hash'] = 'hash'
     finalJSON['version'] = 'GST1.00'
 
     JSONfile = open(
-        os.getcwd()+'/export/export-json-{}-{}-gstr1.json'.format(cName, sMonth), 'w')
+        os.getcwd()+'/export/export-json-{}-{}-GSTR1-{}.json'.format(
+            cName, sMonth, 'QTR' if respFreq else 'MON'), 'w')
     json.dump(finalJSON, JSONfile)
     JSONfile.close()
-    return True
 
+    messagebox.showinfo(
+                    'Success!', '''The invoices have been exported successfully, and JSON file is now present in "export" folder.{}'''.format(extramsgexport))
+    return True
 
 def action_perform(todoAction, sale = True):
     if todoAction == 'Add New Invoice':
@@ -858,8 +955,6 @@ def action_perform(todoAction, sale = True):
         if resp1.lower() in ('yes', 'y'):
             resp2 = exportInvoices()
             if resp2:
-                messagebox.showinfo(
-                    'Success!', 'The invoices have been exported successfully, and JSON file is now present in "export" folder. ')
                 back_to_menu(sale=sale)
         else:
             back_to_menu(sale=sale)
@@ -1263,7 +1358,6 @@ def screen1():
             # frame_1.place_forget()
             resp1 = initialiseCompany(cName, sMonth)
             if resp1:
-                print(salemod)
                 sale = True if salemod == 'Sale' else False
                 frame_1.place_forget()
                 screen2(sale)
