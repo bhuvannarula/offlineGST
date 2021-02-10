@@ -1401,9 +1401,9 @@ def screen1():
         frame_1, optionVarSale, 'Sale', 'Purchase')
     menubutton_1Sale.pack(anchor='w', padx='50', side='top')
     
-    label_5 = tk.Label(frame_1)
+    '''    label_5 = tk.Label(frame_1)
     label_5.config(font='TkDefaultFont', text=' ')
-    label_5.pack(padx='180', side='top')
+    label_5.pack(padx='180', side='top')'''
     button_1 = tk.Button(frame_1)
     button_1.config(text='Continue')
     button_1.pack(anchor='w', side='top')
