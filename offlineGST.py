@@ -1416,7 +1416,7 @@ def screen1():
     label_6.config(text='\n')
     label_6.pack(side='top')
     frame_1.config(pady='10')
-    frame_1.place(x=50, y=50)
+    frame_1.place(x=50, y=25)
 
 
 frame_0.pack()
