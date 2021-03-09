@@ -36,11 +36,19 @@ v3.0.2
 - added auto-update
 
 '''
+enableExtensions = True
+# Checking for Extensions (they are company specific)
+if os.path.isfile(os.getcwd() + '/extras/importExtensions.py'):
+    from extras import importExtensions
+    importExtensionsFound = True
+else:
+    importExtensionsFound = False
 
 # Enter the path to the serverBackupScript.py on your server
 #path_to_server_script = 'enter_path_here'
 path_to_server_script = 'https://bhuvannarula.cf/offlinegst/cgi-bin/serverBackupScript.py'
 auto_update = True
+auto_update_extensions = True
 
 def get_companyDirectory():
     if not os.path.isdir(os.getcwd()+'/companies'):
@@ -60,9 +68,36 @@ frame_0 = tk.Frame(toplevel_1, height=400, width=400)
 screendim = (toplevel_1.winfo_screenheight()/toplevel_1.winfo_screenmmheight())*141
 frame_0.configure(height=screendim, width=screendim)
 
+if enableExtensions:
+    if not os.path.isdir(os.getcwd() + '/extras'):
+        os.mkdir(os.getcwd() + '/extras')
+    def ExtensionInstaller():
+        excode = simpledialog.askstring('New Extension', 'Enter Extension Name')
+        if excode:
+            browser3 = PoolManager()
+            extURL = 'https://raw.githubusercontent.com/bhuvannarula/offlineGST-Extensions/master/' + excode + '.py'
+            newext = browser3.urlopen('GET', extURL).data.decode('utf-8')
+            if 'import' not in newext:
+                messagebox.showerror('Error','No such extension exists!')
+            else:
+                scriptfile = open(os.getcwd() + '/extras/' + excode.split('-')[0] + '.py', 'w')
+                scriptfile.write(newext)
+                scriptfile.close()
+                messagebox.showinfo('Success', 'Extension Installed.')
+
 def check_for_update():
-    if not auto_update:
+    anything_updated = False
+    if auto_update_extensions and enableExtensions:
+        if importExtensionsFound:
+            resp = importExtensions.ExtensionUpdater()
+            anything_updated = resp
+    if not auto_update and anything_updated == False:
         return False
+    elif not auto_update:
+        messagebox.showinfo(
+            'Updated!', 'New update has been installed.\nPlease Restart Utility.')
+        toplevel_1.destroy()
+        return True
     try:
         browser2 = PoolManager()
         respupdate = browser2.urlopen(
@@ -83,7 +118,6 @@ def check_for_update():
             return False
     except:
         return False
-
 
 stcode = {'35': '35-Andaman and Nicobar Islands', '37': '37-Andhra Pradesh', '12': '12-Arunachal Pradesh', '18': '18-Assam', '10': '10-Bihar', '04': '04-Chandigarh', '22': '22-Chattisgarh', '26': '26-Dadra and Nagar Haveli', '25': '25-Daman and Diu', '07': '07-Delhi', '30': '30-Goa', '24': '24-Gujarat', '06': '06-Haryana', '02': '02-Himachal Pradesh', '01': '01-Jammu and Kashmir', '20': '20-Jharkhand', '29': '29-Karnataka', '32': '32-Kerala',
             '31': '31-Lakshadweep Islands', '23': '23-Madhya Pradesh', '27': '27-Maharashtra', '14': '14-Manipur', '17': '17-Meghalaya', '15': '15-Mizoram', '13': '13-Nagaland', '21': '21-Odisha', '34': '34-Pondicherry', '03': '03-Punjab', '08': '08-Rajasthan', '11': '11-Sikkim', '33': '33-Tamil Nadu', '36': '36-Telangana', '16': '16-Tripura', '09': '09-Uttar Pradesh', '05': '05-Uttarakhand', '19': '19-West Bengal', '38': '38-Ladakh'}
@@ -1128,7 +1162,9 @@ def action_perform(todoAction, sale = True):
                     messagebox.showinfo(
                         'Success', 'Data was successfully downloaded from cloud and is available in offline utility.')
                     back_to_menu(sale=sale)
-
+    elif todoAction == 'Import Invoices':
+        importExtensions.ExtensionExecuter(companyGSTIN, cName, sMonth, sale)
+        back_to_menu(sale=sale)
 
 def screen2(sale = True):
     global frame_7
@@ -1169,6 +1205,12 @@ def screen2(sale = True):
         'Backup Invoices',
         'Restore Invoices'
     ]
+    # if Import Extensions are present
+    if importExtensionsFound:
+        extFound = importExtensions.ExtensionManager(companyGSTIN)
+        if extFound:
+            validActions.append('Import Invoices')
+    
     action_to_perform = tk.StringVar(value='-Select Action-')
     menubutton_12 = tk.OptionMenu(
         frame_7, action_to_perform, action_to_perform.get(), *validActions)
@@ -1411,14 +1453,18 @@ def screen1():
     button_1.pack(anchor='w', side='top')
     button_1.configure(command=partial(openMainMenu, optionVar, selectedMonth, optionVarSale))
     button_2 = tk.Button(frame_1)
-
     button_2.config(text='Create New Company', command=createCompany0)
     button_2.pack(anchor='w', side='top')
+    if enableExtensions:
+        button_3 = tk.Button(frame_1)
+        button_3.config(text='Add Extension', command=ExtensionInstaller)
+        button_3.pack(anchor='w', side='top')
+        
     label_6 = tk.Label(frame_1)
     label_6.config(text='\n')
     label_6.pack(side='top')
     frame_1.config(pady='10')
-    frame_1.place(x=50, y=50)
+    frame_1.place(x=50, y=30)
 
 
 frame_0.pack()
