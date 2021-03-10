@@ -772,7 +772,10 @@ def exportInvoices():
     elif not respFreq:
         msgforextradocs = 'Enter count of docs (credit/debit notes, etc.)\nissued other than sale invoices entered here\nfor current month {} (0 for None)'.format(sMonth)
     
-    if ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and int(msgforextradocs) >= 0:
+    if (respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq):
+        extradocs = simpledialog.askstring('Export as JSON', msgforextradocs)
+    
+    if ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and int(extradocs) >= 0:
         if (respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq):
             extradocs = simpledialog.askstring('Export as JSON', msgforextradocs)
             currmondata = get_current_month_summary(sale=True)
@@ -816,10 +819,10 @@ def exportInvoices():
                                         totalInvIssued + int(extradocs))
         else:
             extramsgexport = ''
-    elif ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and msgforextradocs == '-1':
+    elif ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and extradocs == '-1':
         extramsgexport = ''
         pass
-    elif ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and msgforextradocs == '-2':
+    elif ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and extradocs == '-2':
         if (respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq):
             extradocs = simpledialog.askstring('Export as JSON', msgforextradocs)
             currmondata = get_current_month_summary(sale=True)
@@ -845,9 +848,9 @@ def exportInvoices():
                     "num": 1,
                     "from": str(pastInvoices[0]),
                     "to": str(pastInvoices[-1]),
-                    "totnum": totalInvCounted + int(extradocs),
+                    "totnum": totalInvCounted,
                     "cancel": 0,
-                    "net_issue": totalInvCounted + int(extradocs)
+                    "net_issue": totalInvCounted
                 }
                 ]
             }]}
@@ -858,9 +861,9 @@ def exportInvoices():
         Docs Issued (including cancelled): {}
         Docs Cancelled : {}
         Net Docs Issued : {}'''.format(totalInvIssued, 
-                                        totalInvCounted + int(extradocs), 
-                                        totalInvCounted - totalInvIssued, 
-                                        totalInvIssued + int(extradocs))
+                                        totalInvCounted, 
+                                        0, 
+                                        totalInvCounted)
     else:
         extramsgexport = ''
         pass
