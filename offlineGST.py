@@ -772,49 +772,100 @@ def exportInvoices():
     elif not respFreq:
         msgforextradocs = 'Enter count of docs (credit/debit notes, etc.)\nissued other than sale invoices entered here\nfor current month {} (0 for None)'.format(sMonth)
     
-    if (respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq):
-        extradocs = simpledialog.askstring('Export as JSON', msgforextradocs)
-        currmondata = get_current_month_summary(sale=True)
-        pastInvoices.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
-        invEndPoints = pastInvoices[0], pastInvoices[-1]
-        
-        respFinalCall = messagebox.askyesno('Docs Count','Invoices of selected {} start from\n{} and end on {}, Is this correct?'.format(
-                            'month' if not respFreq else 'quarter', *invEndPoints))
-        if not respFinalCall:
-            invEndPoints = (simpledialog.askstring('Count Correction','Enter Starting Invoice No.\n(Do not cancel)'), 
-                        simpledialog.askstring('Count Correction','Enter Ending Invoice No.\n(Do not cancel)'))
-        
-        invEndCounts = re.search('([0-9]+)$', invEndPoints[0]).groups()[0], re.search('([0-9]+)$', invEndPoints[1]).groups()[0]
-        totalInvIssued = int(currmondata[0])
-        totalInvCounted = int(invEndCounts[1]) - int(invEndCounts[0]) + 1
-        
-        doc_issue = {
-            "doc_det": [
-        {
-            "doc_num": 1,
-            "docs": [
+    if ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and int(msgforextradocs) >= 0:
+        if (respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq):
+            extradocs = simpledialog.askstring('Export as JSON', msgforextradocs)
+            currmondata = get_current_month_summary(sale=True)
+            pastInvoices.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
+            invEndPoints = pastInvoices[0], pastInvoices[-1]
+            
+            respFinalCall = messagebox.askyesno('Docs Count','Invoices of selected {} start from\n{} and end on {}, Is this correct?'.format(
+                                'month' if not respFreq else 'quarter', *invEndPoints))
+            if not respFinalCall:
+                invEndPoints = (simpledialog.askstring('Count Correction','Enter Starting Invoice No.\n(Do not cancel)'), 
+                            simpledialog.askstring('Count Correction','Enter Ending Invoice No.\n(Do not cancel)'))
+            
+            invEndCounts = re.search('([0-9]+)$', invEndPoints[0]).groups()[0], re.search('([0-9]+)$', invEndPoints[1]).groups()[0]
+            totalInvIssued = int(currmondata[0])
+            totalInvCounted = int(invEndCounts[1]) - int(invEndCounts[0]) + 1
+            
+            doc_issue = {
+                "doc_det": [
             {
-                "num": 1,
-                "from": str(pastInvoices[0]),
-                "to": str(pastInvoices[-1]),
-                "totnum": totalInvCounted + int(extradocs),
-                "cancel": totalInvCounted - totalInvIssued,
-                "net_issue": totalInvIssued + int(extradocs)
-            }
-            ]
-        }]}
-        finalJSON['doc_issue'] = doc_issue
-        extramsgexport = '''\n
-Export Summary:
-    Sale Invoices (other than cancelled) : {}
-    Docs Issued (including cancelled): {}
-    Docs Cancelled : {}
-    Net Docs Issued : {}'''.format(totalInvIssued, 
-                                    totalInvCounted + int(extradocs), 
-                                    totalInvCounted - totalInvIssued, 
-                                    totalInvIssued + int(extradocs))
+                "doc_num": 1,
+                "docs": [
+                {
+                    "num": 1,
+                    "from": str(pastInvoices[0]),
+                    "to": str(pastInvoices[-1]),
+                    "totnum": totalInvCounted + int(extradocs),
+                    "cancel": totalInvCounted - totalInvIssued,
+                    "net_issue": totalInvIssued + int(extradocs)
+                }
+                ]
+            }]}
+            finalJSON['doc_issue'] = doc_issue
+            extramsgexport = '''\n
+    Export Summary:
+        Sale Invoices (other than cancelled) : {}
+        Docs Issued (including cancelled): {}
+        Docs Cancelled : {}
+        Net Docs Issued : {}'''.format(totalInvIssued, 
+                                        totalInvCounted + int(extradocs), 
+                                        totalInvCounted - totalInvIssued, 
+                                        totalInvIssued + int(extradocs))
+        else:
+            extramsgexport = ''
+    elif ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and msgforextradocs == '-1':
+        extramsgexport = ''
+        pass
+    elif ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and msgforextradocs == '-2':
+        if (respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq):
+            extradocs = simpledialog.askstring('Export as JSON', msgforextradocs)
+            currmondata = get_current_month_summary(sale=True)
+            pastInvoices.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
+            invEndPoints = pastInvoices[0], pastInvoices[-1]
+            
+            respFinalCall = messagebox.askyesno('Docs Count','Invoices of selected {} start from\n{} and end on {}, Is this correct?'.format(
+                                'month' if not respFreq else 'quarter', *invEndPoints))
+            if not respFinalCall:
+                invEndPoints = (simpledialog.askstring('Count Correction','Enter Starting Invoice No.\n(Do not cancel)'), 
+                            simpledialog.askstring('Count Correction','Enter Ending Invoice No.\n(Do not cancel)'))
+            
+            invEndCounts = re.search('([0-9]+)$', invEndPoints[0]).groups()[0], re.search('([0-9]+)$', invEndPoints[1]).groups()[0]
+            totalInvIssued = int(currmondata[0])
+            totalInvCounted = int(invEndCounts[1]) - int(invEndCounts[0]) + 1
+            
+            doc_issue = {
+                "doc_det": [
+            {
+                "doc_num": 1,
+                "docs": [
+                {
+                    "num": 1,
+                    "from": str(pastInvoices[0]),
+                    "to": str(pastInvoices[-1]),
+                    "totnum": totalInvCounted + int(extradocs),
+                    "cancel": 0,
+                    "net_issue": totalInvCounted + int(extradocs)
+                }
+                ]
+            }]}
+            finalJSON['doc_issue'] = doc_issue
+            extramsgexport = '''\n
+    Export Summary:
+        Sale Invoices (other than cancelled) : {}
+        Docs Issued (including cancelled): {}
+        Docs Cancelled : {}
+        Net Docs Issued : {}'''.format(totalInvIssued, 
+                                        totalInvCounted + int(extradocs), 
+                                        totalInvCounted - totalInvIssued, 
+                                        totalInvIssued + int(extradocs))
     else:
         extramsgexport = ''
+        pass
+        
+        
     #summarising gstr1 csv data
     b2bdata, b2cs = summarizeCSV(sMonth)
     
@@ -854,8 +905,8 @@ Export Summary:
                 tempBill['itms'].append({})
                 tempBill['itms'][-1]['num'] = i+1
                 tempBill['itms'][-1]['itm_det'] = {}
-                tempBill['itms'][-1]['itm_det']['rt'] = int(
-                    list(b2bfinaldata[gstin][invNum][1].keys())[i])
+                tempBill['itms'][-1]['itm_det']['rt'] = int(float(
+                    list(b2bfinaldata[gstin][invNum][1].keys())[i]))
                 tempBill['itms'][-1]['itm_det']['txval'] = round(float(
                     b2bfinaldata[gstin][invNum][1][list(b2bfinaldata[gstin][invNum][1].keys())[i]]), 2)
                 temptaxamount = [0, 0, 0]
