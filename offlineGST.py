@@ -750,6 +750,7 @@ def exportInvoices():
                     b2cs[item[0]] = [0, 0, 0, 0, 0]
                 b2cs[item[0]][taxRate.index(item[7])] += round(float(item[8]), 2)
         csvFileIn.close()
+        print(b2cs)
         return b2bdata, b2cs
     '''
     TODO - done implementing
@@ -774,10 +775,11 @@ def exportInvoices():
     
     if (respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq):
         extradocs = simpledialog.askstring('Export as JSON', msgforextradocs)
+        if extradocs in ('', None):
+            extradocs = 0
     
     if ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and int(extradocs) >= 0:
-        if (respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq):
-            extradocs = simpledialog.askstring('Export as JSON', msgforextradocs)
+        if (not respFreq):
             currmondata = get_current_month_summary(sale=True)
             pastInvoices.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
             invEndPoints = pastInvoices[0], pastInvoices[-1]
@@ -817,6 +819,68 @@ def exportInvoices():
                                         totalInvCounted + int(extradocs), 
                                         totalInvCounted - totalInvIssued, 
                                         totalInvIssued + int(extradocs))
+        elif (respFreq and int(float(sMonth[:2]))%3 == 0):
+            def make_it_double(strnum):
+                strnum = str(strnum)
+                if len(strnum) == 2:
+                    return str(strnum)
+                elif len(strnum) == 1:
+                    return '0' + strnum
+            checkMonths = list(make_it_double(int(float(sMonth[:2])) - i)+str(sMonth[2:]) for i in range(3))
+            
+            totb2b, totb2cs = [], {}
+            for iMonth in checkMonths:
+                tempb2b, tempb2cs = summarizeCSV(iMonth)
+                totb2b += tempb2b
+                for item in tempb2cs:
+                    if item in totb2cs:
+                        for irate in range(5):
+                            totb2cs[item][irate] += float(tempb2cs[item][irate])
+                    else:
+                        totb2cs[item] = tempb2cs[item]
+            #totb2b.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
+            b2cs = dict(totb2cs)
+            
+            invEndPoints = pastInvoices[0], pastInvoices[-1]
+            
+            respFinalCall = messagebox.askyesno('Docs Count','Invoices of selected {} start from\n{} and end on {}, Is this correct?'.format(
+                                'month' if not respFreq else 'quarter', *invEndPoints))
+            if not respFinalCall:
+                invEndPoints = (simpledialog.askstring('Count Correction','Enter Starting Invoice No.\n(Do not cancel)'), 
+                            simpledialog.askstring('Count Correction','Enter Ending Invoice No.\n(Do not cancel)'))
+            
+            invEndCounts = re.search('([0-9]+)$', invEndPoints[0]).groups()[0], re.search('([0-9]+)$', invEndPoints[1]).groups()[0]
+            currmondata = get_current_month_summary(sale=True)
+            totalInvIssued = int(currmondata[0])
+            totalInvCounted = int(invEndCounts[1]) - int(invEndCounts[0]) + 1
+            
+            doc_issue = {
+                "doc_det": [
+            {
+                "doc_num": 1,
+                "docs": [
+                {
+                    "num": 1,
+                    "from": str(pastInvoices[0]),
+                    "to": str(pastInvoices[-1]),
+                    "totnum": totalInvCounted + int(extradocs),
+                    "cancel": totalInvCounted - totalInvIssued,
+                    "net_issue": totalInvIssued + int(extradocs)
+                }
+                ]
+            }]}
+            finalJSON['doc_issue'] = doc_issue
+            extramsgexport = '''\n
+    Export Summary:
+        Sale Invoices (other than cancelled) : {}
+        Docs Issued (including cancelled): {}
+        Docs Cancelled : {}
+        Net Docs Issued : {}'''.format(totalInvIssued, 
+                                        totalInvCounted + int(extradocs), 
+                                        totalInvCounted - totalInvIssued, 
+                                        totalInvIssued + int(extradocs))
+            
+            
         else:
             extramsgexport = ''
     elif ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and extradocs == '-1':
@@ -824,7 +888,6 @@ def exportInvoices():
         pass
     elif ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and extradocs == '-2':
         if (respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq):
-            extradocs = simpledialog.askstring('Export as JSON', msgforextradocs)
             currmondata = get_current_month_summary(sale=True)
             pastInvoices.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
             invEndPoints = pastInvoices[0], pastInvoices[-1]
@@ -870,7 +933,13 @@ def exportInvoices():
         
         
     #summarising gstr1 csv data
-    b2bdata, b2cs = summarizeCSV(sMonth)
+    try:
+        if b2cs:
+            pass
+    except:
+        b2bdata, b2cs = summarizeCSV(sMonth)
+    else:
+        b2bdata, b2csnot = summarizeCSV(sMonth)
     
     try:
         os.mkdir(os.getcwd()+'/export')
