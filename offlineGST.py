@@ -837,6 +837,7 @@ def exportInvoices():
                             totb2cs[item][irate] += float(tempb2cs[item][irate])
                     else:
                         totb2cs[item] = tempb2cs[item]
+            totb2b = list(i[2] for i in totb2b)
             totb2b.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
             pastInvoices = (totb2b)
             b2cs = dict(totb2cs)
