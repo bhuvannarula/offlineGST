@@ -851,8 +851,7 @@ def exportInvoices():
                             simpledialog.askstring('Count Correction','Enter Ending Invoice No.\n(Do not cancel)'))
             
             invEndCounts = re.search('([0-9]+)$', invEndPoints[0]).groups()[0], re.search('([0-9]+)$', invEndPoints[1]).groups()[0]
-            currmondata = get_current_month_summary(sale=True)
-            totalInvIssued = int(currmondata[0])
+            totalInvIssued = len(pastInvoices)
             totalInvCounted = int(invEndCounts[1]) - int(invEndCounts[0]) + 1
             
             doc_issue = {
