@@ -750,7 +750,6 @@ def exportInvoices():
                     b2cs[item[0]] = [0, 0, 0, 0, 0]
                 b2cs[item[0]][taxRate.index(item[7])] += round(float(item[8]), 2)
         csvFileIn.close()
-        print(b2cs)
         return b2bdata, b2cs
     '''
     TODO - done implementing
@@ -831,14 +830,15 @@ def exportInvoices():
             totb2b, totb2cs = [], {}
             for iMonth in checkMonths:
                 tempb2b, tempb2cs = summarizeCSV(iMonth)
-                totb2b += tempb2b
+                totb2b.extend(tempb2b)
                 for item in tempb2cs:
                     if item in totb2cs:
                         for irate in range(5):
                             totb2cs[item][irate] += float(tempb2cs[item][irate])
                     else:
                         totb2cs[item] = tempb2cs[item]
-            #totb2b.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
+            totb2b.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
+            pastInvoices = (totb2b)
             b2cs = dict(totb2cs)
             
             invEndPoints = pastInvoices[0], pastInvoices[-1]
