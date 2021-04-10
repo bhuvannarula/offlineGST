@@ -47,7 +47,7 @@ else:
 # Enter the path to the serverBackupScript.py on your server
 #path_to_server_script = 'enter_path_here'
 path_to_server_script = 'https://bhuvannarula.cf/offlinegst/cgi-bin/serverBackupScript.py'
-auto_update = True
+auto_update = False
 auto_update_extensions = True
 
 checked_for_update = False # to make sure checking update is only when software launched, not again
@@ -133,7 +133,7 @@ def get_placeofsupply(statecode):
 
 
 def check_GSTIN(GSTIN):
-    if not re.fullmatch('[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{3}', GSTIN):
+    if not re.fullmatch('[0-9]{2}[A-Z]{4}[0-9A-Z][0-9]{4}[A-Z]{1}[0-9A-Z]{3}', GSTIN):
         return False
     webopener = request.urlopen(
         'https://cleartax.in/f/compliance-report/{}/'.format(GSTIN))
@@ -148,7 +148,7 @@ def check_GSTIN(GSTIN):
         return response_gstin_tradename
 
 def is_GSTIN(GSTIN):
-    if re.fullmatch('[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{3}', GSTIN):
+    if re.fullmatch('[0-9]{2}[A-Z]{4}[0-9A-Z][0-9]{4}[A-Z]{1}[0-9A-Z]{3}', GSTIN):
         return True
     else:
         return False
@@ -509,7 +509,7 @@ def addNewInvoice(modify=False, reset=False, sale=True):
             partyName.set(tempPASTGSTIN[partyGSTIN.get()])
             entry_8.delete('0', 'end')
             entry_8.insert('0', tempPASTGSTIN[partyGSTIN.get()])
-        elif event.widget == entry_7 and re.fullmatch('[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{3}', partyGSTIN.get().upper()):
+        elif event.widget == entry_7 and re.fullmatch('[0-9]{2}[A-Z]{4}[0-9A-Z][0-9]{4}[A-Z]{1}[0-9A-Z]{3}', partyGSTIN.get().upper()):
             partyGSTIN.set(partyGSTIN.get().upper())
             foundGSTIN = check_GSTIN(partyGSTIN.get())
             if foundGSTIN:
@@ -661,7 +661,7 @@ def addNewInvoice(modify=False, reset=False, sale=True):
         elif partyGSTIN.get() in list(stcode.values()) and partyName.get() in ('', None):
             partyGSTIN.set(partyGSTIN.get()[:2])
             pass
-        elif not re.fullmatch('[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{3}', partyGSTIN.get()):
+        elif not re.fullmatch('[0-9]{2}[A-Z]{4}[0-9A-Z][0-9]{4}[A-Z]{1}[0-9A-Z]{3}', partyGSTIN.get()):
             showError('Wrong/Incomplete GSTIN Entered!')
             return False
         elif partyName.get() in (None, ''):
@@ -1421,7 +1421,7 @@ def createCompDir(cName, cGSTIN):
     if cName.get() == '':
         messagebox.showerror('No Name', 'No Company Name provided!')
         return None
-    if not re.fullmatch('[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{3}', cGSTIN):
+    if not re.fullmatch('[0-9]{2}[A-Z]{4}[0-9A-Z][0-9]{4}[A-Z]{1}[0-9A-Z]{3}', cGSTIN):
         messagebox.showerror(
             'Invalid GSTIN', 'The GSTIN Entered is invalid/incomplete!')
         return None
