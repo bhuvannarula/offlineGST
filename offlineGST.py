@@ -780,6 +780,7 @@ def exportInvoices():
     if ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and int(extradocs) >= 0:
         if (not respFreq):
             currmondata = get_current_month_summary(sale=True)
+            global pastInvoices
             pastInvoices.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
             invEndPoints = pastInvoices[0], pastInvoices[-1]
             
