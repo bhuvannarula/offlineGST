@@ -50,6 +50,8 @@ path_to_server_script = 'https://bhuvannarula.cf/offlinegst/cgi-bin/serverBackup
 auto_update = True
 auto_update_extensions = True
 
+checked_for_update = False # to make sure checking update is only when software launched, not again
+
 def get_companyDirectory():
     if not os.path.isdir(os.getcwd()+'/companies'):
         os.mkdir(os.getcwd()+'/companies')
@@ -86,6 +88,11 @@ if enableExtensions:
                 messagebox.showinfo('Success', 'Extension Installed.')
 
 def check_for_update():
+    global checked_for_update
+    if not check_for_update:
+        check_for_update = True
+    else:
+        return False
     anything_updated = False
     if auto_update_extensions and enableExtensions:
         if importExtensionsFound:
@@ -320,15 +327,16 @@ def get_current_month_summary(sale=True):
     data_summary[0] = len(set(pastInvoices))
     for i in range(1,len(data_summary)):
         data_summary[i] = round(data_summary[i],2)
-    pastInvoices.sort(key=lambda var: int(float(
-        re.search('([0-9]+)$', var).groups()[0])))
+    if sale:
+        pastInvoices.sort(key=lambda var: int(float(
+            re.search('([0-9]+)$', var).groups()[0])))
     return data_summary
 
 
 def addNewInvoice(modify=False, reset=False, sale=True):
     currInvNum = tk.StringVar()
     currInvDate = tk.StringVar()
-    if len(pastInvoices) != 0:
+    if len(pastInvoices) != 0 and sale:
         pastInvoices.sort(key=lambda var: int(float(
             re.search('([0-9]+)$', var).groups()[0])))
         if sale:
