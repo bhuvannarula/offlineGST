@@ -89,8 +89,8 @@ if enableExtensions:
 
 def check_for_update():
     global checked_for_update
-    if not check_for_update:
-        check_for_update = True
+    if not checked_for_update:
+        checked_for_update = True
     else:
         return False
     anything_updated = False
