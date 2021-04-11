@@ -623,7 +623,7 @@ def addNewInvoice(modify=False, reset=False, sale=True):
         temp11 = re.search('[0]*([1-9]{1}[0-9]*)$',
                         pastInvoices[-1]).groups()[0]
         temp11_2 = fullmatch('([9]+)$', temp11)
-        if temp11_2 and len(currInvNum.get()) == len(temp11_2.groups()[0]):
+        if temp11_2 and len(pastInvoices[-1]) == len(temp11_2.groups()[0]):
             # converts 999 to 1000
             currInvNum.set('1' + '0'*len(currInvNum.get()))
         elif temp11_2 and pastInvoices[-1][-len(temp11_2.groups()[0])-1] == '0':
@@ -752,7 +752,7 @@ def addNewInvoice(modify=False, reset=False, sale=True):
             pass
         '''
         # currently, both A99 and 99 will be incremented A100 and 100 resp.
-        if temp11_2 and len(currInvNum.get()) == len(temp11_2.groups()[0]):
+        if temp11_2 and len(pastInvoices[-1]) == len(temp11_2.groups()[0]):
             # converts 999 to 1000
             currInvNum.set('1' + '0'*len(currInvNum.get()))
         elif temp11_2 and currInvNum.get()[-len(temp11_2.groups()[0])-1] == '0':
