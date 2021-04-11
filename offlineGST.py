@@ -623,7 +623,10 @@ def addNewInvoice(modify=False, reset=False, sale=True):
         temp11 = re.search('[0]*([1-9]{1}[0-9]*)$',
                         pastInvoices[-1]).groups()[0]
         temp11_2 = fullmatch('([9]+)$', temp11)
-        if temp11_2 and pastInvoices[-1][-len(temp11_2.groups()[0])-1] == '0':
+        if temp11_2 and len(currInvNum.get()) == len(temp11_2.groups()[0]):
+            # converts 999 to 1000
+            currInvNum.set('1' + '0'*len(currInvNum.get()))
+        elif temp11_2 and pastInvoices[-1][-len(temp11_2.groups()[0])-1] == '0':
             # if inv no. ends with 099 or similar, it is incremented to 100
             currInvNum.set(
                 pastInvoices[-1][:-len(temp11_2.groups()[0])-1] + '1' + '0'*len(temp11_2.groups()[0]))
@@ -2149,9 +2152,16 @@ def screen1():
                 screen2(sale)
 
     def createCompany0():
+        '''
+        Function that removes Home Screen, and calls createCompany function
+        '''
         frame_1.place_forget()
         createCompany()
+    
+    # making frame_1 global
     global frame_1
+    
+    # designing
     frame_1 = tk.Frame(frame_0, height=300, width=300)
     label_1 = tk.Label(frame_1)
     label_1.config(font='{Helventica} 48 {}',
@@ -2198,6 +2208,7 @@ def screen1():
     button_2.config(text='Create New Company', command=createCompany0)
     button_2.pack(anchor='w', side='top')
     if enableExtensions:
+        # if extensions are enabled, following adds 'Add Extension' button
         button_3 = tk.Button(frame_1)
         button_3.config(text='Add Extension', command=ExtensionInstaller)
         button_3.pack(anchor='w', side='top')
@@ -2208,7 +2219,7 @@ def screen1():
     frame_1.config(pady='10')
     frame_1.place(x=50, y=30)
 
-
 frame_0.pack()
 screen1()
 toplevel_1.mainloop()
+# --> END OF CODE <-- #
