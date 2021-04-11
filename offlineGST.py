@@ -867,7 +867,8 @@ def addNewInvoice(modify=False, reset=False, sale=True):
                 temp111 = list(
                 i for i in list(stcode.values()) if re.search(partyGSTIN.get().lower(), i.lower())   
             '''
-        entry_7['values'] = temp111.extend(temp112) # First Matched GSTIN, then state names.
+            temp111.extend(temp112)
+        entry_7['values'] =  temp111 # First Matched GSTIN, then state names.
     
     # designing
     
