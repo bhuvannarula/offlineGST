@@ -189,6 +189,7 @@ def check_for_update():
             scriptfilein.close()
             return False
     except:
+        # In case of no network or any similar error
         return False
 
 # Dictionary containing State Name against State Code
@@ -249,6 +250,7 @@ def check_GSTIN(GSTIN):
         response_gstin_tradename = response_gstin_tradename['taxpayerInfo']['tradeNam']
     except:
         # In case of wrong GSTIN, the above value cannot be fetched, hence error will be generated
+        # or in case there is no internet connectivity
         return False
     if response_gstin_tradename == 'null':
         # Just in case the value is able to be fetched but is 'null', depends on error handling of their server
@@ -747,6 +749,9 @@ def addNewInvoice(modify=False, reset=False, sale=True):
             pass
         '''
         # currently, both A99 and 99 will be incremented A100 and 100 resp.
+        if temp11_2 and len(currInvNum.get()) == len(temp11_2.groups()[0]):
+            # converts 999 to 1000
+            currInvNum.set('1' + '0'*len(currInvNum.get()))
         if temp11_2 and currInvNum.get()[-len(temp11_2.groups()[0])-1] == '0':
             currInvNum.set(
                 currInvNum.get()[:-len(temp11_2.groups()[0])-1] + '1' + '0'*len(temp11_2.groups()[0]))
@@ -1613,36 +1618,47 @@ def action_perform(todoAction, sale = True):
             else:
                 back_to_menu(sale=sale)
         else:
+            # in case of Purchase Invoices
             resp2 = summaryPurchase()
             back_to_menu(sale=sale)
     elif todoAction == 'Backup Invoices':
+        # Confirm from user if they want to continue
         messagebox._show('Caution', 'The invoices of selected period will be uploaded to cloud.',
                          _icon='info', _type=messagebox.OK)
-        if True:
+        if True: # was meant for something but not used
+            # credentials are locally stored in .savedCred file. So, if it does not exist
             if not os.path.isfile('.savedCred'):
+                # ask user for login or register
                 respRegister = messagebox.askyesno(
                     'Login/Register', 'Do you want to login or register?\n(Click Yes to Login, Click No to Register)')
 
                 if not respRegister:
+                    # if register is selected
                     kr = False
                     while True:
+                        # ask username
                         credd_user = simpledialog.askstring(
                             'Register', 'Enter Username (max_length=20, only alphabet & numbers accepted):')
                         if credd_user == None:
+                            # if user doesn't enter anything, stop it
                             kr = True
                             break
+                        # check username
                         if len(credd_user) >= 20 or len(re.fullmatch('[0-9a-zA-Z]+', credd_user).group()) != len(credd_user):
                             messagebox.showerror(
                                 'Invalid!', 'Invalid Username! (max_length=20,\nonly alphabet & numbers\naccepted)')
                             continue
+                        # ask password
                         credd_pass = simpledialog.askstring(
                             'Register', 'Enter Password:')
                         if credd_pass == None:
+                            # if user doesn't enter anything, stop it
                             kr = True
                             break
                         break
                     if kr:
                         back_to_menu(sale=sale)
+                    # send request to server
                     respregisternew = registerNewUserCloud(
                         credd_user, credd_pass)
                     if respregisternew:
@@ -1651,8 +1667,10 @@ def action_perform(todoAction, sale = True):
                     else:
                         messagebox.showerror(
                             'Failed!', 'New User Registeration failed!')
+                    # go back to menu
                     back_to_menu(sale=sale)
                 else:
+                    # if login
                     kk = False
                     while True:
                         credd_user = simpledialog.askstring(
@@ -1675,8 +1693,12 @@ def action_perform(todoAction, sale = True):
                     if kk:
                         back_to_menu(sale=sale)
                     else:
+                        # if successfully logged in, send data to server
+                        # tell user invoices are being uploaded
                         messagebox._show(
                             'Processing', 'Invoices are being uploaded\nto cloud. Press OK', _icon='info', _type=messagebox.OK)
+                        
+                        # send request to server
                         respbkup = backupMain(
                             cName, sMonth, username=credd_user, password=credd_pass, rememberMe=credd_save)
                         if type(respbkup) == list:
@@ -1685,11 +1707,14 @@ def action_perform(todoAction, sale = True):
                             back_to_menu(sale=sale)
                         elif type(respbkup) == bool and respbkup == True:
                             messagebox.showinfo(
-                                'Success', 'Data was successfully uploaded to cloud and will be available to restore.')
+                                'Success', 'Data was successfully uploaded to cloud and is available to restore.')
                             back_to_menu(sale=sale)
             else:
+                # if credentials are saved locally
                 messagebox._show(
                     'Processing', 'Invoices are being uploaded\nto cloud. Press OK', _icon='info', _type=messagebox.OK)
+                
+                # send request to server
                 respbkup = backupMain(cName, sMonth, hashed=True)
                 if type(respbkup) == list:
                     messagebox._show(
@@ -1697,12 +1722,14 @@ def action_perform(todoAction, sale = True):
                     back_to_menu(sale=sale)
                 elif type(respbkup) == bool and respbkup == True:
                     messagebox.showinfo(
-                        'Success', 'Data was successfully uploaded to cloud and will be available to restore.')
+                        'Success', 'Data was successfully uploaded to cloud and is available to restore.')
                     back_to_menu(sale=sale)
+                    
     elif todoAction == 'Restore Invoices':
+        # tell user data will be restored
         messagebox._show('Caution', 'The invoices of selected period will be restored from cloud.',
                          _icon='info', _type=messagebox.OK)
-        if True:
+        if True: # was meant for something but not used
             if not os.path.isfile(os.getcwd()+'/.savedCred'):
                 respRegister = messagebox.askyesno(
                     'Login/Register', 'Do you want to login or register?\n(Click Yes to Login, Click No to Register)')
@@ -1788,7 +1815,17 @@ def action_perform(todoAction, sale = True):
         back_to_menu(sale=sale)
 
 def screen2(sale = True):
+    '''
+    Function responsible for placing the Menu Screen (screen2) (screen after company is selected)
+    
+    sale : bool
+        True if Sale Invoicing is selected
+        False if Purchase Invoicing is selected
+    '''
+    # make frame_7 global
     global frame_7
+    
+    # designing
     frame_7 = tk.Frame(frame_0, height=screendim, width=screendim)
     label_7 = tk.Label(frame_7)
     label_7.config(
@@ -1826,25 +1863,34 @@ def screen2(sale = True):
         'Backup Invoices',
         'Restore Invoices'
     ]
-    # if Import Extensions are present
+    # if Import Extensions are present, call them
     if importExtensionsFound:
+        # 'importExtensions' works as an extension that adds an import method (not present normally)
         companyGSTINhashed = sha256(companyGSTIN.encode()).hexdigest()
+        # ExtensionManager is called, which returns True if extension is meant for the company selected
         extFound = importExtensions.ExtensionManager(companyGSTINhashed)
         if extFound:
+            # add the import option
             validActions.append('Import Invoices')
     
+    # designing
     action_to_perform = tk.StringVar(value='-Select Action-')
     menubutton_12 = tk.OptionMenu(
         frame_7, action_to_perform, action_to_perform.get(), *validActions)
     menubutton_12.pack(padx=10, pady=5, anchor='w', side='top')
 
     def initialise_addInvoice(action_to_perform):
+        '''
+        Function that makes sure an action is selected from drop-down on the Menu Screen (screen2)
+        '''
         if action_to_perform.get() == '-Select Action-':
             messagebox.showerror(
                 'Action Error!', 'No Action selected, please select one to proceed.')
         else:
             frame_7.place_forget()
             action_perform(action_to_perform.get(), sale)
+            
+    # designing
     button_5 = tk.Button(
         frame_7, command=lambda: back_to_homescreen(frame_7), text='Go Back')
     button_5.pack(padx=10, side='left', anchor='w')
@@ -1858,15 +1904,29 @@ def screen2(sale = True):
 
 
 def initialiseCompany(cName, sMonth):
+    '''
+    Function that opens an company by:
+        - creating appropriate directories
+        - declaring value of global variable companyGSTIN
+    '''
+    # using global variable companyGSTIN
     global companyGSTIN
+    
+    # checking if 'companies/' directory is present
     if not os.path.isdir(os.getcwd()+'/companies'):
         messagebox.showerror('No Companies Created!')
         return False
+    
+    # checking if selected company is present
     if not os.path.isdir(os.getcwd()+'/companies/'+cName):
         messagebox.showerror('Company not present!')
         return False
+    
+    # if selected month not initialised previously, initialise it
     if not os.path.isdir(os.getcwd()+'/companies/{}/{}'.format(cName, sMonth)):
         os.mkdir(os.getcwd()+'/companies/{}/{}'.format(cName, sMonth))
+    
+    # if GSTR1 file not created previously, create it
     if not os.path.isfile(os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName, sMonth)):
         tempCSVFileIn = open(
             os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName, sMonth), 'w', newline='')
@@ -1875,6 +1935,8 @@ def initialiseCompany(cName, sMonth):
                      'Place Of Supply', 'Invoice Type', 'Rate', 'Taxable Amount', 'Cess Amount']
         tempWriter.writerow(headerRow)
         tempCSVFileIn.close()
+        
+    # if GSTR2 file not created previously, create it
     if not os.path.isfile(os.getcwd()+'/companies/{}/{}/GSTR2.csv'.format(cName, sMonth)):
         tempCSVFileIn = open(
             os.getcwd()+'/companies/{}/{}/GSTR2.csv'.format(cName, sMonth), 'w', newline='')
@@ -1882,32 +1944,41 @@ def initialiseCompany(cName, sMonth):
         headerRow = ['GSTIN', 'Supplier Name', 'Invoice Number', 'Invoice Date', 'Invoice Value',
                      'Place Of Supply', 'Invoice Type', 'Rate', 'Taxable Amount', 'Cess Amount']
         tempWriter.writerow(headerRow)
-        tempCSVFileIn.close()    
-    # store gstins into PAST_GSTINS file
+        tempCSVFileIn.close() 
+       
+    # previously entered GSTINS are retrieved from .PAST_GSTINS file
     global tempPASTGSTIN
     if not os.path.isfile(os.getcwd()+'/companies/{}/.PAST_GSTINS'.format(cName)):
+        # if file not present, create it
         tempPASTGSTINfile = open(
             os.getcwd()+'/companies/{}/.PAST_GSTINS'.format(cName), 'wb')
         pickle.dump({}, tempPASTGSTINfile)
         tempPASTGSTIN = {}
         tempPASTGSTINfile.close()
     else:
+        # if file present, retrieve data from it
         tempPASTGSTINfile = open(
-            os.getcwd()+'/companies/{}/.PAST_GSTINS'.format(cName), 'rb+')
+            os.getcwd()+'/companies/{}/.PAST_GSTINS'.format(cName), 'rb')
         tempPASTGSTIN = pickle.load(tempPASTGSTINfile)
         tempPASTGSTINfile.close()
-    '''
-    for item in templist:
-        tempfilein = open(os.getcwd()+'companies/{}/{}/GSTR1.csv'.format(cName,item),'r',newline='')
-        tempreader = csv.reader(tempfilein)
-    '''
+
+    # Retrieve companyGSTIN stored in local file .COMPANY_GSTIN
     companyGSTIN = open(os.getcwd(
     )+'/companies/{}/.COMPANY_GSTIN'.format(cName), 'r', newline='').read().strip()
     return True
 
 
 def createCompDir(cName, cGSTIN):
+    '''
+    Function that creates required directories and files for the new company being created
+    
+    cName : str
+    cGSTIN : str
+    '''
+    # convert to upper case
     cGSTIN = cGSTIN.get().upper()
+    
+    # error handling
     if cName.get() == '':
         messagebox.showerror('No Name', 'No Company Name provided!')
         return None
@@ -1915,8 +1986,12 @@ def createCompDir(cName, cGSTIN):
         messagebox.showerror(
             'Invalid GSTIN', 'The GSTIN Entered is invalid/incomplete!')
         return None
+    
+    # creating directory 'companies/'
     if not os.path.isdir(os.getcwd()+'/companies'):
         os.mkdir(os.getcwd()+'/companies')
+    
+    # checking if company already exists
     if os.path.isdir(os.getcwd()+'/companies/'+cName.get()):
         #messagebox.showinfo('Company Exists!','Company already exists! Do you wish to continue? (old data will be gone)',messagebox.YESNO)
         resp2 = messagebox._show(
@@ -1925,21 +2000,37 @@ def createCompDir(cName, cGSTIN):
             rmtree(os.getcwd()+'/companies/'+cName.get())
         else:
             return None
+    
+    # making directory 'companies/cName'
     os.mkdir(os.getcwd()+'/companies/'+cName.get())
+    
+    # creating .COMPANY_GSTIN file to store companyGSTIN
     fileGSTIN = open(os.getcwd()+'/companies/'+cName.get() +
                      '/.COMPANY_GSTIN', 'w', newline='')
     fileGSTIN.write(cGSTIN)
     fileGSTIN.close()
+    
+    # creating .PAST_GSTINS file for storing old GSTIN & Name pairs
     fileGSTINS = open(os.getcwd()+'/companies/' +
                       cName.get()+'/.PAST_GSTINS', 'wb')
     pickle.dump({}, fileGSTINS)
     fileGSTINS.close()
+    
+    # show message that company creation was successsful
     messagebox.showinfo('Success!', 'New Company successfully created!')
+    
+    # go back to Home Screen
     back_to_homescreen(frame_1_2)
 
 
 def createCompany():
+    '''
+    Function responsible for placing Create Company Page, and related actions
+    '''
+    # making frame_1_2 global
     global frame_1_2
+    
+    # designing
     frame_1_2 = tk.Frame(frame_0, height=screendim, width=screendim)
     label_5_6 = tk.Label(frame_1_2)
     label_5_6.config(font='{Helventica} 36 {}',
@@ -1953,6 +2044,7 @@ def createCompany():
     compGSTIN, compName = tk.StringVar(),tk.StringVar()
 
     def auto_partyname(event):
+        # Fetches company name from GSTIN using API
         resppp = check_GSTIN(compGSTIN.get())
         if resppp:
             compName.set(resppp)
@@ -1985,45 +2077,73 @@ def createCompany():
 
 
 def screen1():
+    '''
+    Function responsible for placing the Home/ Starting Screen, and related actions
+    '''
+    # checking for updates
     if check_for_update():
+        # do not proceed further if update was installed
         return None
+    
+    # making cName, sMonth global
     global cName, sMonth
 
     def openMainMenu(companyName, selectedMonth, salemode):
+        '''
+        Function responsible for calling the Menu Screen opening function
+        
+        companyName : str
+        selectedMonth : 
+        '''
+        # using global cName, sMonth
         global cName, sMonth
+        
+        # set variable values
         companyName, selMonth, salemod = companyName.get(), str(selectedMonth.get()), salemode.get()
+        
+        # check if company is selected
         if companyName == '-Select-': # or not re.fullmatch('[0-9]{2}/[0-9]{4}', selectedMonth):
             messagebox.showerror('Error!', 'No Company Selected!')
         else:
+            # checking the type of month entered
             presentyear = datetime.now().year
             if re.fullmatch('[1-9]',selMonth):
+                # if month entered like m (single digit), make it 0m/YYYY (YYYY is ongoing year)
                 selMonth = '0{}/{}'.format(selMonth, presentyear)
                 selectedMonth.set(selMonth)
             elif re.fullmatch('[1-9]/[0-9]{2}',selMonth):
+                # if entered like m/yy, make it 0m/20yy
                 selMonth = '0' + selMonth
                 selMonth = selMonth.split('/')
                 selMonth[-1] = '/20' + selMonth[-1]
                 selMonth = ''.join(selMonth)
                 selectedMonth.set(selMonth)                
             elif re.fullmatch('[0-1][1-9]',selMonth):
+                # if entered like mm, make it mm/YYYY
                 selMonth = '{}/{}'.format(selMonth, presentyear)
                 selectedMonth.set(selMonth)
             elif re.fullmatch('[0-1][1-9]/[0-9]{2}',selMonth):
+                # if entered like mm/yy, make it mm/20yy
                 selMonth = selMonth.split('/')
                 selMonth[-1] = '/20' + selMonth[-1]
                 selMonth = ''.join(selMonth)
                 selectedMonth.set(selMonth)
             elif re.fullmatch('[0-9]{2}/[0-9]{4}', selMonth):
+                # if entered like mm/yyyy, keep it that way
                 selMonth = selMonth
                 selectedMonth.set(selMonth)
             else:
+                # if entered in any other way / blank month
                 messagebox.showerror('Invalid Month Selected!')
                 return None
-            cName, sMonth = str(
-                companyName), '-'.join(str(selMonth).split('/'))
-            # frame_1.place_forget()
+            
+            # declaring values of global variables cName, sMonth
+            cName, sMonth = str(companyName), '-'.join(str(selMonth).split('/'))
+            
+            # calling function to initialise company
             resp1 = initialiseCompany(cName, sMonth)
             if resp1:
+                # if successfully created,
                 sale = True if salemod == 'Sale' else False
                 frame_1.place_forget()
                 screen2(sale)
