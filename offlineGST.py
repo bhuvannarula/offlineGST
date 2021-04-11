@@ -752,7 +752,7 @@ def addNewInvoice(modify=False, reset=False, sale=True):
         if temp11_2 and len(currInvNum.get()) == len(temp11_2.groups()[0]):
             # converts 999 to 1000
             currInvNum.set('1' + '0'*len(currInvNum.get()))
-        if temp11_2 and currInvNum.get()[-len(temp11_2.groups()[0])-1] == '0':
+        elif temp11_2 and currInvNum.get()[-len(temp11_2.groups()[0])-1] == '0':
             currInvNum.set(
                 currInvNum.get()[:-len(temp11_2.groups()[0])-1] + '1' + '0'*len(temp11_2.groups()[0]))
         else:
