@@ -625,7 +625,7 @@ def addNewInvoice(modify=False, reset=False, sale=True):
         temp11_2 = fullmatch('([9]+)$', temp11)
         if temp11_2 and len(pastInvoices[-1]) == len(temp11_2.groups()[0]):
             # converts 999 to 1000
-            currInvNum.set('1' + '0'*len(currInvNum.get()))
+            currInvNum.set('1' + '0'*len(pastInvoices[-1]))
         elif temp11_2 and pastInvoices[-1][-len(temp11_2.groups()[0])-1] == '0':
             # if inv no. ends with 099 or similar, it is incremented to 100
             currInvNum.set(
