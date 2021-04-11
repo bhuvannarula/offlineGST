@@ -854,13 +854,20 @@ def addNewInvoice(modify=False, reset=False, sale=True):
         '''
         # First find GSTIN(s) matching the entered text
         temp111 = list(
-            i for i in tempPASTGSTIN if re.search(partyGSTIN.get().upper(), i.upper() + ' ' + tempPASTGSTIN[i]))
-        if temp111 == [] and partyGSTIN.get() not in ('',None):
-            # if no GSTIN were found, then check if user was entering state name/code
-            temp111 = list(
-             i for i in list(stcode.values()) if re.search(partyGSTIN.get().lower(), i.lower())   
+            i for i in tempPASTGSTIN if re.search(partyGSTIN.get().upper(), i.upper() + ' ' + tempPASTGSTIN[i].upper()))
+        if partyGSTIN.get() not in ('',None) and len(re.findall('[0-9]{2}', partyGSTIN.get())) <= 1:
+            # checks in state names as well, second condition above filters cases when state names are checked
+            temp112 = list(
+            i for i in list(stcode.values()) if re.search(partyGSTIN.get().lower(), i.lower())
             )
-        entry_7['values'] = temp111
+            '''
+            Old Way of doing
+            if temp111 == [] and partyGSTIN.get() not in ('',None):
+                # if no GSTIN were found, then check if user was entering state name/code
+                temp111 = list(
+                i for i in list(stcode.values()) if re.search(partyGSTIN.get().lower(), i.lower())   
+            '''
+        entry_7['values'] = temp111.extend(temp112) # First Matched GSTIN, then state names.
     
     # designing
     
