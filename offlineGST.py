@@ -9,7 +9,7 @@ from shutil import rmtree
 from urllib import request
 import json
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from hashlib import sha256
 from math import ceil
@@ -19,40 +19,56 @@ import pickle
 from urllib3 import PoolManager
 
 '''
-v2 - changelog
-csv will be used in place of openpyxl to improve compatibility and efficiency.
+offlineGST
 
-v3 - changelog
-- added backup and restore option
-- fixed bugs
+Return Utility with Sale and Purchase Invoicing
 
-v3.0.1
-- added autocomplete GSTIN from dropdown
-
-v3.0.2
-- removed random identifier from name of .JSON file exported
-- fixed issue where modified bill won't save
-- GSTIN entered will be entered into .PAST_GSTINS file, which wil be referred to in all months of selected company
-- added auto-update
+Author : Bhuvan Narula
+Website : bhuvannarula.cf
+Version : v4
+'''
 
 '''
+Global Variables (User should change only these if necessary):
+    path_to_server_script : str
+        String containing link to the Server Script.
+        User can use their custom server by changing this link.
+        By default, my server is used
+    auto_update : bool
+        True if user wants to automatically update the code
+        False if user wants to manually update code from GitHub
+    auto_update_extensions : bool
+        Same as auto_update, just for the Extensions
+        Note: setting auto_update to False will NOT override this
+    enableExtensions : bool
+        True if extensions are to be enabled
+        False if not
+'''
+path_to_server_script = 'https://bhuvannarula.cf/offlinegst/cgi-bin/serverBackupScript.py'
+auto_update = False
+auto_update_extensions = True
 enableExtensions = True
-# Checking for Extensions (they are company specific)
+
+'''
+Next 4 lines
+Checks if extensions are enabled, and imports the extensions.
+Extensions are present in 'extras/' directory
+importExtensionsFound : bool
+    Used to check if 'importExtensions' module has been imported.
+'''
 if os.path.isfile(os.getcwd() + '/extras/importExtensions.py'):
     from extras import importExtensions
     importExtensionsFound = True
 else:
     importExtensionsFound = False
 
-# Enter the path to the serverBackupScript.py on your server
-#path_to_server_script = 'enter_path_here'
-path_to_server_script = 'https://bhuvannarula.cf/offlinegst/cgi-bin/serverBackupScript.py'
-auto_update = False
-auto_update_extensions = True
-
-checked_for_update = False # to make sure checking update is only when software launched, not again
-
 def get_companyDirectory():
+    '''
+    Checks the directory 'companies/' and returns 
+    names of folders present i.e. Companies present
+    
+    returns : list of strings
+    '''
     if not os.path.isdir(os.getcwd()+'/companies'):
         os.mkdir(os.getcwd()+'/companies')
     companyDirectory1 = list(os.listdir(os.getcwd()+'/companies/'))
@@ -60,62 +76,111 @@ def get_companyDirectory():
         item for item in companyDirectory1 if item[0] != '.')
     return companyDirectory
 
-
+# Color of background of 'offlineGST' logo
 headingcolor1 = 'LightBlue'
+
+# Root Window of tkinter in which everything will be placed
 toplevel_1 = tk.Tk(screenName='offlineGST',
                    baseName='offlineGST', className='offlineGST')
+
+# Disabling resizing of window
 toplevel_1.resizable(height=0, width=0)
-frame_0 = tk.Frame(toplevel_1, height=400, width=400)
-#ideal = 141 mm
+
+# Main Frame of program
+frame_0 = tk.Frame(toplevel_1)
+
+# Scaling window according to user's screen size
+'''
+toplevel_1.winfo_screenheight() returns height of screen in pixels
+toplevel_1.winfo_screenmmheight() returns height of screen in mm
+141 mm x 141 mm was the size of 400x400 px window on the display program was designed.
+'''
 screendim = (toplevel_1.winfo_screenheight()/toplevel_1.winfo_screenmmheight())*141
+
+# setting frame dimensions
 frame_0.configure(height=screendim, width=screendim)
 
+# following code provides ability to install new extensions
 if enableExtensions:
+    # create 'extras/' directory
     if not os.path.isdir(os.getcwd() + '/extras'):
         os.mkdir(os.getcwd() + '/extras')
     def ExtensionInstaller():
+        '''
+        Asks for the name of extension and installs the extension (if found)
+        
+        Extensions are modules that contains code meant for a specific need
+            (hence, it is required by only that person for which extension was made)
+        
+        Currently available extension(s) can be found at
+            https://github.com/bhuvannarula/offlineGST-Extensions/
+        '''
+        # Ask for Extension Name
         excode = simpledialog.askstring('New Extension', 'Enter Extension Name')
         if excode:
+            # create browser-like instance
             browser3 = PoolManager()
             extURL = 'https://raw.githubusercontent.com/bhuvannarula/offlineGST-Extensions/master/' + excode + '.py'
+            # open link for extension
             newext = browser3.urlopen('GET', extURL).data.decode('utf-8')
+            # if link is correct, the entire code is printed in browser, and 'import' word is present in code
             if 'import' not in newext:
                 messagebox.showerror('Error','No such extension exists!')
             else:
                 scriptfile = open(os.getcwd() + '/extras/' + excode.split('-')[0] + '.py', 'w')
                 scriptfile.write(newext)
                 scriptfile.close()
+                # show that update was installed
                 messagebox.showinfo('Success', 'Extension Installed.')
+                # close the program, so that user restarts it.
+                toplevel_1.destroy()
+
+# to make sure checking update is only when software launched, not again anytime homescreen opens
+checked_for_update = False 
 
 def check_for_update():
+    '''
+    Updates the code files by fetching new files from GitHub and comparing them
+    '''
+    # use global variable 'checked_for_update'
     global checked_for_update
     if not checked_for_update:
+        # The first time code checks for updates
         checked_for_update = True
     else:
+        # Any other time code checks for updates
         return False
-    anything_updated = False
+    exten_updated = False
     if auto_update_extensions and enableExtensions:
         if importExtensionsFound:
             resp = importExtensions.ExtensionUpdater()
-            anything_updated = resp
-    if not auto_update and anything_updated == False:
+            # resp = True if any extension was updated, else False
+            exten_updated = resp
+    if not auto_update and not exten_updated:
+        # If auto_update disabled, and no extension was updated
         return False
     elif not auto_update:
+        # If auto_update disabled but an extension was updated
+        # Shows a pop-up that update was installed, and closes the tkinter window (so that software is restarted)
         messagebox.showinfo(
             'Updated!', 'New update has been installed.\nPlease Restart Utility.')
         toplevel_1.destroy()
         return True
     try:
         browser2 = PoolManager()
+        # open GitHub link for main code
         respupdate = browser2.urlopen(
             'GET', 'https://raw.githubusercontent.com/bhuvannarula/offlineGST/master/offlineGST.py').data.decode('utf-8')
         scriptfilein = open(os.getcwd()+'/offlineGST.py', 'r+')
+        # Read the code present in local machine
         scriptfileindata = scriptfilein.read()
         if scriptfileindata != respupdate:
+            # if code on local machine is not same as that on GitHub, local code is overwritten.
             scriptfilein.seek(0)
             scriptfilein.truncate()
             scriptfilein.write(respupdate)
             scriptfilein.close()
+            # Show pop-up that update was installed, and close tkinter window
             messagebox.showinfo(
                 'Updated!', 'New update has been installed.\nPlease Restart Utility.')
             toplevel_1.destroy()
@@ -126,85 +191,194 @@ def check_for_update():
     except:
         return False
 
+# Dictionary containing State Name against State Code
 stcode = {'35': '35-Andaman and Nicobar Islands', '37': '37-Andhra Pradesh', '12': '12-Arunachal Pradesh', '18': '18-Assam', '10': '10-Bihar', '04': '04-Chandigarh', '22': '22-Chattisgarh', '26': '26-Dadra and Nagar Haveli', '25': '25-Daman and Diu', '07': '07-Delhi', '30': '30-Goa', '24': '24-Gujarat', '06': '06-Haryana', '02': '02-Himachal Pradesh', '01': '01-Jammu and Kashmir', '20': '20-Jharkhand', '29': '29-Karnataka', '32': '32-Kerala',
             '31': '31-Lakshadweep Islands', '23': '23-Madhya Pradesh', '27': '27-Maharashtra', '14': '14-Manipur', '17': '17-Meghalaya', '15': '15-Mizoram', '13': '13-Nagaland', '21': '21-Odisha', '34': '34-Pondicherry', '03': '03-Punjab', '08': '08-Rajasthan', '11': '11-Sikkim', '33': '33-Tamil Nadu', '36': '36-Telangana', '16': '16-Tripura', '09': '09-Uttar Pradesh', '05': '05-Uttarakhand', '19': '19-West Bengal', '38': '38-Ladakh'}
 def get_placeofsupply(statecode):
+    '''
+    Returns State Name corresponding to the State Code given
+    
+    statecode : str
+    len(statecode) = 2
+    '''
     return stcode[statecode]
 
-
-def check_GSTIN(GSTIN):
-    if not re.fullmatch('[0-9]{2}[A-Z]{4}[0-9A-Z][0-9]{4}[A-Z]{1}[0-9A-Z]{3}', GSTIN):
-        return False
-    webopener = request.urlopen(
-        'https://cleartax.in/f/compliance-report/{}/'.format(GSTIN))
-    response_gstin_tradename = json.loads(webopener.read())
-    try:
-        response_gstin_tradename = response_gstin_tradename['taxpayerInfo']['tradeNam']
-    except:
-        return False
-    if response_gstin_tradename == 'null':
-        return False
-    else:
-        return response_gstin_tradename
-
 def is_GSTIN(GSTIN):
+    '''
+    Checks if the GSTIN is correct by matching it to general pattern of GSTIN
+    
+    GSTIN : str
+    Pattern of GSTIN : [0-9]{2}[A-Z]{4}[0-9A-Z][0-9]{4}[A-Z]{1}[0-9A-Z]{3}
+    '''
     if re.fullmatch('[0-9]{2}[A-Z]{4}[0-9A-Z][0-9]{4}[A-Z]{1}[0-9A-Z]{3}', GSTIN):
         return True
     else:
         return False
 
+def check_GSTIN(GSTIN):
+    '''
+    Checks if GSTIN is correct, and returns Trade Name of the Party with corresponding GSTIN
+
+    GSTIN : str
+    '''
+    '''
+    offlineGST software uses ClearTax API to fetch Party Name corresponding to the GSTIN entered.
+    This might SEEM illegal, but ClearTax has implimented a public GSTIN search tool, 
+        available at https://cleartax.in/s/gst-number-search
+    which uses the same API, and how the API is used can be found by right-clicking the page and
+    inspecting the page. A JavaScript Code is present, and the code i have written is just the
+    Python way of doing what that JS code is doing.
+    The API is provided by GST Network, and is available only to large corporate firms, hence I
+    cannot use the API directly. 
+    This software was created as a helping tool, to be used at very low scale (only for my father),
+    and the frequency of fetching is quite less. Hence this use of their API can be termed illegal
+    ONLY in case this leads to excessive use of their server (a case of DDoS Attack) which is neither
+    my intention nor the software is capable of performing.
+    '''
+    # GSTIN pattern matching to reduce API use
+    if not is_GSTIN(GSTIN):
+        return False
+    # Opening this URL returns a JSON response containing data corresponding to the GSTIN
+    webopener = request.urlopen(
+        'https://cleartax.in/f/compliance-report/{}/'.format(GSTIN))
+    response_gstin_tradename = json.loads(webopener.read())
+    try:
+        # Following value can be fetched only if GSTIN was correct and response was correctly received
+        response_gstin_tradename = response_gstin_tradename['taxpayerInfo']['tradeNam']
+    except:
+        # In case of wrong GSTIN, the above value cannot be fetched, hence error will be generated
+        return False
+    if response_gstin_tradename == 'null':
+        # Just in case the value is able to be fetched but is 'null', depends on error handling of their server
+        return False
+    else:
+        return response_gstin_tradename
+
+
 def back_to_homescreen(currentFrame):
+    '''
+    Removes(forgets) current frame, and Adds(places) the HomeScreen
+    
+    currentFrame : tkinter.Frame
+    '''
     currentFrame.place_forget()
     screen1()
 
 
 def back_to_menu(currentFrame=None, sale = True):
+    '''
+    Removes(forgets) current frame (if any), and Adds(places) the MenuScreen
+    '''
     if currentFrame:
         currentFrame.place_forget()
     screen2(sale=sale)
 
-# functions for backup and restore start here -->
+# functions responsible for backup and restore start here -->
 
-
-def backupMain(companyName, filingPeriod, hashed=False, username=None, password=None, rememberMe=False, path_to_server_script=path_to_server_script, packet_length=None):
+def backupMain(companyName, filingPeriod, hashed=False, username=None, password=None, rememberMe=False, 
+               path_to_server_script=path_to_server_script, packet_length=None):
+    '''
+    Function responsible for Backup of the data of selected Company and selected Month
+    to the server (Backup Feature)
+    
+    Note : Backup and Restore feature works only for 'Sale' invoices, 'Purchase' invoice are not backed up.
+    
+    companyName : string
+    filingPeriod : string
+    packet_length : None or int
+    '''
+    '''
+    hashed = False if user enters password
+    hashed = True if pre-saved password is fetched (pre-saved pass is already hashed)
+    
+    The hashing password part essentially just makes the code complex, but fixes password length to 64 characters.
+    This can be considered advantage or disadvantage depends on POV
+    '''
     if not hashed:
+        # if password not hashed, hash it
         password = sha256(password.encode('ascii')).hexdigest()
     else:
+        # if password pre-saved, fetch it
         cookiesFileIN = open(os.getcwd()+'/.savedCred', 'rb')
         username, password = pickle.load(cookiesFileIN)
         cookiesFileIN.close()
     if rememberMe:
+        # if user has selected to save password, save it to file
+        # Note : password is already hashed at this point, hence no hashing again
         cookiesFileIN = open(os.getcwd()+'/.savedCred', 'wb')
         pickle.dump((username, password), cookiesFileIN)
         cookiesFileIN.close()
 
-    companyGSTINfile = open(
-        os.getcwd()+'/companies/{}/.COMPANY_GSTIN'.format(companyName), 'r')
-    companyGSTIN = companyGSTINfile.read(15)
-    companyGSTINfile.close()
+    # Fetches the GSTIN of the company selected for Backup and stores it in companyGSTIN
+    with open(os.getcwd()+'/companies/{}/.COMPANY_GSTIN'.format(companyName), 'r') as companyGSTINfile:
+        companyGSTIN = companyGSTINfile.read(15)
 
     def initialiseCSVdata():
+        '''
+        Reads all the data from CSV file of the selected month, reduces it to 
+        necessary details, and returns a nested tuple
+        '''
+        # open the CSV file
         csvFileIN = open(os.getcwd(
         )+'/companies/{}/{}/GSTR1.csv'.format(companyName, filingPeriod), 'r', newline='')
         csvFileReader = csv.reader(csvFileIN)
+        
+        # skip the header
         next(csvFileReader)
+        
         nestedTuple = tuple()
         for item in csvFileReader:
-            # 0,2,3,7,8
+            '''
+            Standard header is : ['GSTIN', 'Receiver Name', 'Invoice Number', 'Invoice Date', 'Invoice Value',
+                     'Place Of Supply', 'Invoice Type', 'Rate', 'Taxable Amount', 'Cess Amount']
+            
+            GSTIN is 15 char long if it is a registered party
+            GSTIN is 2 char long (just state code) if it is an unregistered party.
+            so, Place of Supply can be derived from GSTIN column. Hence, not included
+            '''
+            # 0,2,3,7,8 are the bare minimum necessary columns
             item2 = item[2:3] + item[:1] + item[3:4] + item[7:9]
             nestedTuple += (tuple(item2),)
         return str(nestedTuple)
 
+    # fetch data from CSV file
     rawCSVdata = initialiseCSVdata()
+    
+    # encodes or 'quotes' the data like the way it is done when HTML form is submitted and data is sent.
     csvDatatoUpload = quote(rawCSVdata, safe='')
+    
+    # calculate bytes of data to upload
     bytesToUpload = len(csvDatatoUpload)
+    
+    '''
+    Data is sent in same way when HTML form is submitted.
+    Initially, the idea was to send the data in 'packets' or parts,
+    one at a time, because i thought whole at once would be too long 
+    and would generate errors. (Data is sent as a URL, and it was 
+    suggested on internet that length of URL be <= 1024 or so)
+    Later, found that sending all at once did not throw error, hence
+    code was modified such that support for splitting in packets
+    remained, but now all data was sent at once. (was tried with
+    length of string being about 5000 characters)
+    (packet-mode can be enabled by setting value of 'packet_length'
+        - This can be done only be done by editing code
+        - packet_length = length of string to be sent as one packet
+    ) 
+    '''
     if not packet_length:
+        # if packet_length is not specified (by default 'None')
         packet_length = bytesToUpload
         packets_count = 1
     else:
+        # if packet_length is specified
         packets_count = ceil(bytesToUpload/packet_length)
 
+    # creating a browser-type instance
     browser = PoolManager()
+    
+    # Data is sent to server like when a HTML form is submitted. These unique keys 
+    # of data is just so that only the one who knows the correct can send data to
+    # server (Just increases complexity) (user with custom-server can change them)
     firstRequest = browser.request('POST', path_to_server_script,
                                    fields={'Identification': 'True',
                                            'mastermindname': username,
@@ -213,25 +387,24 @@ def backupMain(companyName, filingPeriod, hashed=False, username=None, password=
                                            'book': filingPeriod.replace('-', ''),
                                            'scrolls': packets_count}
                                    )
+    
+    # Server responds with a key (if authentication successful) else responds with error
     authen_key_resp = firstRequest.data[:-1].decode('utf-8')
     if not fullmatch('[0-9a-zA-Z]{16}', authen_key_resp):
         return [authen_key_resp]
 
-    # Now, packets will be sent one-by-one
-    # Packets are used as max length for url should be <= 1024 (general idea on internet)
-    # each packet will contain authen_key, curr_packet_no, packet_data
-    # len(packet_data) = 800
-
+    # If authenticated, data is sent according to packet_count value with the authen key received
     for curr_packet in range(packets_count):
-        tempCSVbuffer = csvDatatoUpload[curr_packet *
-                                        packet_length:(curr_packet+1)*packet_length]
+        tempCSVbuffer = csvDatatoUpload[curr_packet * packet_length : 
+                                        (curr_packet+1)*packet_length]
         packetsSend = browser.request('POST', path_to_server_script,
                                       fields={'ongoingmagic': 'True',
                                               'secretspell': str(authen_key_resp),
                                               'hobbitage': str(curr_packet+1),
                                               'folklores': str(tempCSVbuffer)}
                                       )
-        #print(str(packetsSend.data[:-1].decode('utf-8')))
+        # Server returns 'Received' everytime a packet is received
+        # and returns 'Successful' when all packets are received
         if 'Received' not in str(packetsSend.data[:-1].decode('utf-8')):
             return ['Packet Lost! Backup Failed!']
         if 'Successful' in str(packetsSend.data[:-1].decode('utf-8')):
@@ -239,13 +412,24 @@ def backupMain(companyName, filingPeriod, hashed=False, username=None, password=
 
 
 def registerNewUserCloud(username, password, path_to_server_script=path_to_server_script):
+    '''
+    Registers an user on the server
+    
+    All data (invoices) is stored on server corresponding to the username
+    '''
+    # creating browser-like instance
     browser = PoolManager()
+    
+    # hashing the password
     password = sha256(password.encode('ascii')).hexdigest()
+    
+    # sending request to server
     registerRequest = browser.request('POST', path_to_server_script,
                                       fields={'Learning': 'True',
                                               'mastermindname': username,
                                               'wizardspell': password}
                                       )
+    # Check if registration was successful
     if 'Successful' in str(registerRequest.data[:-1].decode('utf-8')):
         return True
     else:
@@ -253,19 +437,36 @@ def registerNewUserCloud(username, password, path_to_server_script=path_to_serve
 
 
 def restoreMain(companyName, filingPeriod, hashed=False, username=None, password=None, rememberMe=False, path_to_server_script=path_to_server_script, packet_length=800):
+    '''
+    Function responsible for restoring a backup from server.
+    companyName : str
+    filingPeriod : str
+    
+    rememberMe : bool ; True if credentials are to be saved, else False
+    hashed : bool ; True if credentials are already stored else False
+    '''
+    # creating browser-like instance
     browser = PoolManager()
+    
+    # hashing and retrieving password
     if not hashed:
         password = sha256(password.encode('ascii')).hexdigest()
     else:
         cookiesFileIN = open(os.getcwd()+'/.savedCred', 'rb')
         username, password = pickle.load(cookiesFileIN)
         cookiesFileIN.close()
+    
+    # saving password if user selects to
     if rememberMe:
         cookiesFileIN = open(os.getcwd()+'/.savedCred', 'wb')
         pickle.dump((username, password), cookiesFileIN)
         cookiesFileIN.close()
+    
+    # retrieving company GSTIN
     companyGSTIN = open(
         os.getcwd()+'/companies/{}/.COMPANY_GSTIN'.format(companyName), 'r').read(15)
+    
+    # sending request to server
     restoreAuthen = browser.request('POST', path_to_server_script,
                                     fields={'getback': 'True',
                                             'mastermindname': username,
@@ -274,26 +475,34 @@ def restoreMain(companyName, filingPeriod, hashed=False, username=None, password
                                             'book': filingPeriod.replace('-', ''),
                                             'scrolls': str(1)}
                                     )
+    # Server either responds with all the data of the selected company and month present in 
+    # database on server (success) or with error text containing 'Failed'
     authen_key_resp = restoreAuthen.data[:-1].decode('utf-8')
     if 'Failed' in authen_key_resp:
         return ['Authentication Failed']
     else:
         try:
+            # dataRec should be a tuple 
             dataRec = eval(authen_key_resp)
-            # second part of second condition is for blank data
+            # original comment : second part of second condition is for blank data
+            # later added note : on reviewing the code, could not find reason for writing the second condition,
+            # but i remember earlier there were cases for which this was important
             if type(dataRec) != tuple or (len(dataRec) != 0 and type(dataRec[0]) != tuple):
                 raise ValueError
         except:
             return ['Authentication Failed/ Data Corrupt!']
+    # open the file in which data is to be written (* older data is over-written)
     fileOUT = open(os.getcwd(
     )+'/companies/{}/{}/GSTR1.csv'.format(companyName, filingPeriod), 'w', newline='')
     csvFinalWriter = csv.writer(fileOUT)
     headerRow = ['GSTIN', 'Receiver Name', 'Invoice Number', 'Invoice Date', 'Invoice Value',
                  'Place Of Supply', 'Invoice Type', 'Rate', 'Taxable Amount', 'Cess Amount']
+    # add the header row
     csvFinalWriter.writerow(headerRow)
-    dataRec = list(dataRec)
+    # write remining data to CSV file
     for item in dataRec:
         item2 = list(item)
+        # derive Place of Supply from GSTIN column
         item2[5] = get_placeofsupply(item2[5])
         csvFinalWriter.writerow(item2)
     fileOUT.close()
@@ -304,53 +513,124 @@ def restoreMain(companyName, filingPeriod, hashed=False, username=None, password
 
 
 def get_current_month_summary(sale=True):
-    global pastInvoices, invoiceNumDateDict  # pastGSTIN
+    '''
+    Function responsible for
+        - Generating selected month summary (displayed on Menu Page)
+        - Creating list 'pastInvoices' containing all invoice numbers of current month
+        - Creating dict 'invoiceNumDateDict' containing invoice no. and corresp. date
+    both pastInvoices and invoiceNumDateDict are global variables (used in other parts of code)
+    
+    sale : bool
+        True if Sale Invoicing is selected for current month
+        False if Purchase Invoicing is selected for cur. month
+    '''
+    # use the global variables
+    global pastInvoices, invoiceNumDateDict
+    # open the current month CSV file (sale or purchase depends on 'sale' variable)
     csvfileIn = open(
         os.getcwd()+'/companies/{}/{}/GSTR{}.csv'.format(cName, sMonth, '1' if sale else '2'), 'r', newline='')
     tempReader = csv.reader(csvfileIn)
-    next(tempReader, None)
-    # Total Invoices, Total Taxbl Val, Total IGST, Total CGST/SGST
-    data_summary = [0, 0, 0, 0]
+    # skip the header
+    next(tempReader)
+    # declaring variables, scheme of 'data_summary' is: [Total Invoices, Total Taxbl Val, Total IGST, Total CGST/SGST]
+    data_summary = ['', 0, 0, 0]
     pastInvoices = []
-    #pastGSTIN = {}
+    # Count of [registered, unregistered] party invoices
+    invCount = [0,0]
+    
     invoiceNumDateDict = {}
     for item in tempReader:
+        # Counting reg and unreg party invoices
+        if item[2] not in pastInvoices:
+            if len(item[0]) == 15:
+                invCount[0] += 1
+            elif len(item[0]) == 2:
+                invCount[1] += 1
+        # add invoice number to pastInvoices
         pastInvoices.append(item[2])
+        # add invoice no. : date to dict
         invoiceNumDateDict[item[2]] = item[3]
-        #pastGSTIN[item[0]] = item[1]
+        # add data to data_summary
         data_summary[1] += round(float(item[8]), 2)
         if item[0][:2] == companyGSTIN[:2]:
+            # if Intra-State (CGST/SGST applicable)
             data_summary[3] += round(float(item[8])*float(item[7])/200, 2)
         else:
+            # if Inter-State (IGST applicable)
             data_summary[2] += round(float(item[8])*float(item[7])/100, 2)
-        #data_summary[3] += round(float(item[9]), 2) cess replaced by cgst/sgst
-    data_summary[0] = len(set(pastInvoices))
+    # Just checking if everything is alright
+    if sum(invCount) != len(set(pastInvoices)):
+        print(sum(invCount), len(set(pastInvoices)))
+        raise UserWarning('Something is very wrong')
+    # add count of invoices
+    data_summary[0] = 'Reg - {}, Unreg - {}'.format(*invCount)
+    # Round the values in data_summary to 2 decimal places
     for i in range(1,len(data_summary)):
         data_summary[i] = round(data_summary[i],2)
+    # sorting pastInvoices is required only for 'Sale' Invoices
     if sale:
+        # using patter matching to sort inv no. like A100 and A101 etc
         pastInvoices.sort(key=lambda var: int(float(
             re.search('([0-9]+)$', var).groups()[0])))
     return data_summary
 
 
 def addNewInvoice(modify=False, reset=False, sale=True):
+    '''
+    Function responsible for Adding and Modifying Invoice
+    
+    modify : bool or str
+        False (default) if addNewInvoice is called to add an invoice
+        string of invoice number to be modified if called to modify an invoice
+    reset : bool
+        False by default
+        if True only new (incremented) inv no. and inv date are returned
+            this is used to set values when an invoice is to be added just after
+            an invoice is added without going back to menu screen. So, intead
+            of placing the whole add Invoice page again (by calling complete
+            addNewInvoice function), just the value entry boxes are emptied in 
+            the previously placed addNewInvoice page, and new incremented 
+            inv no. and same date is placed for ease of user.
+    sale : bool
+        True if it is a Sale Invoice that is to be added/modified
+        False if it is a Purchase Invoice that is to be added/modified
+
+    '''
+    # Declaring variables in tkinter environment
+    # These variables are dynamic, meaning :
+    # changing them changes value in entry box it is linked to, and vice versa
     currInvNum = tk.StringVar()
     currInvDate = tk.StringVar()
+    
+    # following code is responsible for incrementing invoice no. and setting inv no. and date values
     if len(pastInvoices) != 0 and sale:
-        pastInvoices.sort(key=lambda var: int(float(
-            re.search('([0-9]+)$', var).groups()[0])))
-        if sale:
-            temp11 = re.search('[0]*([1-9]{1}[0-9]*)$',
-                            pastInvoices[-1]).groups()[0]
-            temp11_2 = fullmatch('([9]+)$', temp11)
-            if temp11_2 and pastInvoices[-1][-len(temp11_2.groups()[0])-1] == '0':
-                currInvNum.set(
-                    pastInvoices[-1][:-len(temp11_2.groups()[0])-1] + '1' + '0'*len(temp11_2.groups()[0]))
-            else:
-                currInvNum.set(
-                    pastInvoices[-1].split(temp11)[0]+str(int(temp11)+1))
-            # currInvNum.set(pastInvoices[-1][:-1]+str(int(pastInvoices[-1][-1])+1))
+        # if previous invoices are present, and it is a sale invoice that is being added/modified
+        pastInvoices.sort(key=lambda var: int(float(re.search('([0-9]+)$', var).groups()[0])))
+        #-- Now the code responsible for incrementing invoice no. --
+        '''
+        search numeric part in last invoice
+            eg: if inv no. is A10B00199
+                temp11 will be '00199'
+                temp11_2 will be '99'
+                pastInvoices[-1][-len(temp11_2.groups()[0])-1] will be digit just before temp11_2 digits
+                in this case, it is '1'
+            NOTE : inv like A99 will be incremented to A100
+        '''
+        temp11 = re.search('[0]*([1-9]{1}[0-9]*)$',
+                        pastInvoices[-1]).groups()[0]
+        temp11_2 = fullmatch('([9]+)$', temp11)
+        if temp11_2 and pastInvoices[-1][-len(temp11_2.groups()[0])-1] == '0':
+            # if inv no. ends with 099 or similar, it is incremented to 100
+            currInvNum.set(
+                pastInvoices[-1][:-len(temp11_2.groups()[0])-1] + '1' + '0'*len(temp11_2.groups()[0]))
+        else:
+            # any other case of invoice no.
+            currInvNum.set(
+                pastInvoices[-1].split(temp11)[0]+str(int(temp11)+1))
+        # set the same date as previous bill
         currInvDate.set(invoiceNumDateDict[pastInvoices[-1]])
+        
+    # declaring variables in tkinter environment
     partyGSTIN = tk.StringVar()
     partyName = tk.StringVar()
 
@@ -359,12 +639,16 @@ def addNewInvoice(modify=False, reset=False, sale=True):
     taxable12val = tk.StringVar(value='0.00')
     taxable18val = tk.StringVar(value='0.00')
     taxable28val = tk.StringVar(value='0.00')
-    #taxablecessval = tk.StringVar('0.00')
+    #taxablecessval = tk.StringVar('0.00') # depriciated
 
     if reset == True:
+        # the inv no. and inv date are returned
         return currInvNum.get(), currInvDate.get()
 
+    # parent frame for addNewInvoice page
     frame_3 = tk.Frame(frame_0, height=screendim, width=screendim)
+    
+    # designing
     label_12 = tk.Label(frame_3)
     label_12.config(background='LightBlue',
                     font='{Helventica} 36 {}', text='offlineGST')
@@ -375,72 +659,101 @@ def addNewInvoice(modify=False, reset=False, sale=True):
     frame_16 = tk.Frame(frame_3)
     button_5 = tk.Button(frame_16)
     if modify:
+        # if addNewInvoice function is called to modify an invoice
+        
+        # setting the heading
         label_13.config(text='Modify Old Invoice:')
+        
+        # opening the CSV file
         csvFileIn = open(
-            os.getcwd()+'/companies/{}/{}/GSTR{}.csv'.format(cName, sMonth, '1' if sale else '2'), 'r+', newline='')
+            os.getcwd()+'/companies/{}/{}/GSTR{}.csv'.format(cName, sMonth, '1' if sale else '2'), 'r+', newline='', )
         csvReaderData = list(csv.reader(csvFileIn))
         taxSeq = ['0', '5', '12', '18', '28']
-        csvFileIn.seek(0)
+        
+        # variables to store old values of invoice to be modifed
         datalist_for_modify = []
         taxabledatalist_for_modify = ['0.00']*5
         final_csv_before_addmodify = []
         for item in csvReaderData:
+            # searching for the invoice to be modified
             if item[2] == modify:
+                # if any part of invoice is found 
+                # Note : there are separate rows for different tax rates for same invoice in CSV file
                 taxabledatalist_for_modify[taxSeq.index(item[7])] = item[8]
-                datalist_for_modify = item[:4]
+                datalist_for_modify = item[:4] # common values for all instances
                 pastInvoices.remove(item[2])
-                #del invoiceNumDateDict[item[2]]
             else:
+                # Remaining rows are untouched and stored separately
                 final_csv_before_addmodify.append(item)
         else:
-            if item[2] == modify:
-                del invoiceNumDateDict[item[2]]
+            if datalist_for_modify != [] and modify in invoiceNumDateDict:
+                # any invoice has been found, and invoice no. is in dict
+                # condition after and will be True always, but still written just to be sure
+                # called separately as there is only one occurence of invoice no. in dict
+                del invoiceNumDateDict[modify]
+        # set the old values into the entry boxes
         currInvNum.set(datalist_for_modify[2])
         currInvDate.set(datalist_for_modify[3])
         if len(datalist_for_modify[0]) == 2:
+            # if unreg party invoice
             partyGSTIN.set(stcode[datalist_for_modify[0]])
         else:
+            # if reg party invoice
             partyGSTIN.set(datalist_for_modify[0])
+        # some more setting variables
         partyName.set(datalist_for_modify[1])
         taxable0val.set(taxabledatalist_for_modify[0])
         taxable5val.set(taxabledatalist_for_modify[1])
         taxable12val.set(taxabledatalist_for_modify[2])
         taxable18val.set(taxabledatalist_for_modify[3])
         taxable28val.set(taxabledatalist_for_modify[4])
+        # disable the cancel button, as cancelling will lead to deleting of invoice
         button_5['state'] = 'disabled'
+        
+        # seek back to start, empty the file and write all rows except those being modified
+        csvFileIn.seek(0)
         csvFileIn.truncate()
         csvWriter = csv.writer(csvFileIn)
         csvWriter.writerows(final_csv_before_addmodify)
+        csvFileIn.close()
+        # now onwards the modified bill is treated as adding a new invoice
 
+    # designing
     label_13.pack(anchor='w', pady='10', side='top')
     frame_4 = tk.Frame(frame_3)
     label_16 = tk.Label(frame_4)
     label_16.config(text='Invoice Number:')
     label_16.pack(anchor='w', side='left')
     entry_5 = tk.Entry(frame_4)
-
     entry_5.config(textvariable=currInvNum, width = 18)
-    _text_ = currInvNum.get()
-    entry_5.delete('0', 'end')
-    entry_5.insert('0', _text_)
     entry_5.pack(anchor='w', side='left')
     
     def inc_num_fn():
+        '''
+        Function to increment invoice number.
+        Same logic as of code before.
+        This time, when called, functions to increment value already present in entry box
+        '''
         if currInvNum.get() in ('None',None,''):
             return None
         temp11 = re.search('[0]*([1-9]{1}[0-9]*)$',
                         currInvNum.get()).groups()[0]
         temp11_2 = fullmatch('([9]+)$', temp11)
+        '''
         if temp11_2 and len(temp11_2.groups()[0]) == len(currInvNum.get()):
             # TODO if invNum == '99', make it '100', 'A99' will not be converted to 'A100'
             pass
-        elif temp11_2 and currInvNum.get()[-len(temp11_2.groups()[0])-1] == '0':
+        '''
+        # currently, both A99 and 99 will be incremented A100 and 100 resp.
+        if temp11_2 and currInvNum.get()[-len(temp11_2.groups()[0])-1] == '0':
             currInvNum.set(
                 currInvNum.get()[:-len(temp11_2.groups()[0])-1] + '1' + '0'*len(temp11_2.groups()[0]))
         else:
             currInvNum.set(
                 currInvNum.get().split(temp11)[0]+str(int(temp11)+1))
     
+    # designing
+    # this is a small button '+' to increment the inv no., refer to design for more clarity
     inc_num_btn = tk.Button(frame_4, text='+', command = inc_num_fn)
     inc_num_btn.pack(anchor='w',side='left')
     
@@ -453,43 +766,29 @@ def addNewInvoice(modify=False, reset=False, sale=True):
     entry_6 = tk.Entry(frame_5)
     entry_6.config(textvariable=currInvDate, width='10')
     entry_6.pack(anchor='w', side='left')
-    
-    def make_it_double(strnum):
-        strnum = str(strnum)
-        if len(strnum) == 2:
-            return str(strnum)
-        elif len(strnum) == 1:
-            return '0' + strnum
+
     
     def inc_date_fn():
-        if currInvDate.get() in ('None',None,''):
+        '''
+        Functions to increment the date present in the entry box
+        '''
+        strInvDate = currInvDate.get()
+        if strInvDate in ('None',None,''):
+            # if entry box is empty, set date to 1st of selected month
+            # sMonth is of form mm-yyyy
             currInvDate.set('01/'+sMonth.replace('-','/'))
-        elif re.fullmatch('[0-9]{2}/[0-9]{2}/[0-9]{4}',currInvDate.get()):
-            #below code will increment date by 1 day
-            #following will not give error unless it is year 2100
-            curdatesel = currInvDate.get().split('/')
-            monthDays = [31,29 if int(curdatesel[-1])%4 == 0 else 28, 31,30,31,30,31,31,30,31,30,31]
-            '''
-            if re.fullmatch('0[1-8]',curdatesel[0]):
-                curdatesel[0] = '0'+str(int(float(curdatesel[0]))+1)
-            elif curdatesel[0] == '09':
-                curdatesel[0] = '10'
-            else:
-                pass
-            '''
-            tempday = int(curdatesel[0])+1
-            if tempday-1 == monthDays[int(float(curdatesel[1]))-1]:
-                curdatesel[0] = '01'
-                curdatesel[1] = make_it_double(str(int(float(curdatesel[1])) + 1))
-                if curdatesel[1] == '13':
-                    curdatesel[1] = '01'
-                    curdatesel[2] = str(int(float(curdatesel[2]))+1)
-            else:
-                curdatesel[0] = make_it_double(tempday)
-            curdatesel = '/'.join(curdatesel)
-            currInvDate.set(curdatesel)
+        elif re.fullmatch('[0-9]{2}/[0-9]{2}/[0-9]{4}',strInvDate):
+            # dd/mm/yyyy is represented as '%d/%m/%Y'
+            # incrementing date using datetime module
+            old_date = datetime.strptime(strInvDate, '%d/%m/%Y')
+            old_date.day += timedelta(days = 1)
+            new_date = old_date.strftime('%d/%m/%Y')
+            currInvDate.set(new_date)
             entry_6.delete('0', 'end')
-            entry_6.insert('0',curdatesel)
+            entry_6.insert('0',new_date)
+    
+    # more designing
+    # this is a small button '+' to increment the inv date, refer to design for more clarity
     inc_date_btn = tk.Button(frame_5, text='+',command=inc_date_fn)
     inc_date_btn.pack(anchor='w',side='left')
     
@@ -504,30 +803,63 @@ def addNewInvoice(modify=False, reset=False, sale=True):
     entry_8 = tk.Entry(frame_7_8)
 
     def autopartyname(event):
+        '''
+        Function that is triggered everytime GSTIN box loses focus
+        Responsible for fetching Party Name from GSTIN using check_GSTIN function
+        declared earlier
+        '''
+        # tempPASTGSTIN is a dict containing all previously entered {GSTIN : Party Name} pairs
+        # this is to reduce the use of API, and allow this feature to work offline
         if event.widget == entry_7 and partyGSTIN.get().upper() in tempPASTGSTIN:
+            # if GSTIN has been entered before, fetch party name from tempPASTGSTIN instead of API
             partyGSTIN.set(partyGSTIN.get().upper())
             partyName.set(tempPASTGSTIN[partyGSTIN.get()])
             entry_8.delete('0', 'end')
             entry_8.insert('0', tempPASTGSTIN[partyGSTIN.get()])
         elif event.widget == entry_7 and re.fullmatch('[0-9]{2}[A-Z]{4}[0-9A-Z][0-9]{4}[A-Z]{1}[0-9A-Z]{3}', partyGSTIN.get().upper()):
+            # if GSTIN never entered before
+            # first make it upper class
             partyGSTIN.set(partyGSTIN.get().upper())
+            # then call the API function
             foundGSTIN = check_GSTIN(partyGSTIN.get())
             if foundGSTIN:
+                # If a match is returned, set it
                 partyName.set(foundGSTIN)
-                # added this as updating partyName sometimes does not show up in text box
+                # added this just to make sure entry box is updated
                 entry_8.delete('0', 'end')
                 entry_8.insert('0', foundGSTIN)
 
     def listGSTIN():
+        '''
+        Function that is triggered everytime drop down is opened
+        Entry Box for GSTIN is a drop down, in which 
+            Case-1 : If User is entering a GSTIN
+                all GSTIN matching the text entered are shown. Text entered can be any part of GSTIN
+            *Case-2 : If User is entering invoice for Unregistered Dealer
+                User needs to enter Place of Supply (either state code or state name), and states
+                matching the text will be shown in dropdown. User NEEDS to pick one from dropdown
+                as the state name needs to be in proper formatting.
+                Refer to 'How to Use the Program' in Documentation at
+                    https://bhuvannarula.cf/offlinegst/documentation.pdf
+        '''
+        # First find GSTIN(s) matching the entered text
         temp111 = list(
             i for i in tempPASTGSTIN if re.search(partyGSTIN.get().upper(), i.upper()))
         if temp111 == [] and partyGSTIN.get() not in ('',None):
+            # if no GSTIN were found, then check if user was entering state name/code
             temp111 = list(
              i for i in list(stcode.values()) if re.search(partyGSTIN.get().lower(), i.lower())   
             )
         entry_7['values'] = temp111
+    
+    # designing
+    
+    # postcommand is triggered when dropdown is opened, hence triggering listGSTIN function
     entry_7.config(postcommand=listGSTIN)
+    # binding so that autopartyname(event) is triggered on <FocusOut> (losing focus of entry_7)
     entry_7.bind('<FocusOut>', autopartyname)
+    
+    # designing
     entry_7.pack(anchor='w', side='top')
     frame_6.config(height='200', width='200')
     frame_6.pack(anchor='w', padx='10', side='top')
@@ -588,9 +920,14 @@ def addNewInvoice(modify=False, reset=False, sale=True):
     btn_show_tax.pack(anchor='w',side='left')
     
     def show_tax_amounts():
+        '''
+        Function that, when called, opens a popup showing the tax amounts of corresponding
+        tax rates, and total invoice value (for purpose of rechecking by user)
+        '''
         dataIn = [taxable5val.get(),taxable12val.get(),taxable18val.get(),taxable28val.get()]
         prct = [5,12,18,28]
         totall = 0
+        # finding tax amounts and total invoice value
         msgg = "Tax Amounts:\n"
         for item in range(len(prct)):
             temp_principal = float(dataIn[item])
@@ -600,6 +937,7 @@ def addNewInvoice(modify=False, reset=False, sale=True):
         msgg += 'Total Invoice Value: ' + str(round(totall,2))
         messagebox.showinfo('Tax Summary',msgg)
     
+    # button is configured to call function on clicking
     btn_show_tax.configure(command=show_tax_amounts)
     
     # cess feature depriciated, will be revived in future on demand
@@ -611,6 +949,7 @@ def addNewInvoice(modify=False, reset=False, sale=True):
     entry_17.config(textvariable=taxablecessval, width='10')
     entry_17.pack(side='top')
     '''
+    # designing
     frame_14.config(height='200', width='200')
     frame_14.pack(anchor='w', padx='20', side='top')
     #frame_16 = tk.Frame(frame_3)
@@ -619,67 +958,112 @@ def addNewInvoice(modify=False, reset=False, sale=True):
     button_5.pack(anchor='w', side='left')
 
     def showError(message):
+        '''
+        Function that, when called, shows a dialog box with error message passed to it
+        Does NOT stop the program (which happens when actual error occurs)
+        
+        message : str
+            the error message to be shown
+        '''
         messagebox.showerror('Wrong Input!', message)
 
     def push_data_to_excel(invNum, invDate, partyGSTIN, partyName, taxamountlists):
+        '''
+        Function responsible for writing the invoice to the CSV file.
+        
+        invNum : str
+        invDate : str
+        partyGSTIN : str
+        partyName : str
+        taxamountlists : list
+        '''
+        # opening the CSV file in which data to be added
         csvFileIn = open(
             os.getcwd()+'/companies/{}/{}/GSTR{}.csv'.format(cName, sMonth, '1' if sale else '2'), 'a+', newline='')
         csvWriter = csv.writer(csvFileIn)
         taxSeq = ['0', '5', '12', '18', '28']
+        # calculating total invoice value
         totalInvValue = round(sum(list(
             (100+float(taxSeq[i[0]]))*float(i[1])/100 for i in enumerate(taxamountlists))),2)
+        
+        # adding information about new invoice to required variables
         for taxItem in enumerate(taxamountlists):
-            if taxItem[1] != 0:
+            # add row to CSV only if tax amount for that tax rate has been entered
+            if int(taxItem[1]) != 0:
                 pastInvoices.append(invNum.get())
                 invoiceNumDateDict[invNum.get()] = invDate.get()
-                #pastGSTIN[partyGSTIN.get()] = partyName.get()
                 csvWriter.writerow([partyGSTIN.get(), partyName.get(), invNum.get(), invDate.get(
                 ), totalInvValue, get_placeofsupply(partyGSTIN.get()[:2]), 'Regular', taxSeq[taxItem[0]], taxItem[1], '0.00'])
                 if is_GSTIN(partyGSTIN.get()):
+                    # if GSTIN has not been entered before, store it (will be available offline)
                     tempPASTGSTIN[partyGSTIN.get()] = partyName.get()
 
-        tempPASTGSTINfile = open(
-            os.getcwd()+'/companies/{}/.PAST_GSTINS'.format(cName), 'wb')
-        pickle.dump(tempPASTGSTIN, tempPASTGSTINfile)
-        tempPASTGSTINfile.close()
-
-        csvFileIn.flush()
+        '''
+        .PAST_GSTINS is a pickled binary file in which the dictionary 'tempPASTGSTIN' is stored so that
+        it can be fetch when program is ran in future
+        '''
+        # dumping the new tempPASTGSTIN dict to local file
+        with open(os.getcwd()+'/companies/{}/.PAST_GSTINS'.format(cName), 'wb') as tempPASTGSTINfile:
+            pickle.dump(tempPASTGSTIN, tempPASTGSTINfile)
         csvFileIn.close()
         return True
 
     def check_valid_newInvoice_input():
+        '''
+        Function that checks if all the data entered on addNewInvoice page is of correct format and complete
+        
+        Raises error in form of pop-up using showError function
+        '''
         if is_GSTIN(partyGSTIN.get()):
+            # if GSTIN is entered, make it upper case
             partyGSTIN.set(partyGSTIN.get().upper())
+        
+        # creating list of all taxable values
         ttaxvallist = list(round(float(ii.get()), 2) for ii in [
                            taxable0val, taxable5val, taxable12val, taxable18val, taxable28val])
+        
         if currInvNum.get() in (None, ''):
+            # if no invoice number is entered
             showError('No invoice number entered!')
             return False
         elif not re.fullmatch('[0-9]{2}/[0-9]{2}/[0-9]{4}', currInvDate.get()):
-            showError('Wrong/Incomplete Date Entered!')
+            # if date is not entered/is of wrong format
+            showError('Wrong/Incomplete Date Entered! (should be: dd/mm/yyyy)')
             return False
-        elif partyGSTIN.get() in list(stcode.values()) and partyName.get() in ('', None):
+        elif partyGSTIN.get() in list(stcode.values()): # and partyName.get() in ('', None):
+            # if party is unregistered, set GSTIN to state code
             partyGSTIN.set(partyGSTIN.get()[:2])
-            pass
+            partyName.set('') # to make sure
         elif not re.fullmatch('[0-9]{2}[A-Z]{4}[0-9A-Z][0-9]{4}[A-Z]{1}[0-9A-Z]{3}', partyGSTIN.get()):
+            # if GSTIN does not match the pattern
             showError('Wrong/Incomplete GSTIN Entered!')
             return False
         elif partyName.get() in (None, ''):
+            # if no party name has been entered
             showError('No Party Name entered!')
             return False
         elif round(sum(ttaxvallist), 0) == 0:
+            # if no taxable value has been entered
             showError('No Tax Values entered!')
             return False
         elif currInvNum.get() in pastInvoices:
+            # if invoice number is already present (checks only in current month)
             showError('Bill adding failed. Bill is already present!')
             return False
+        
+        # now that everything seems ok, push the data to CSV file
+        # True is returned when all data is processed succesfully
         resp = push_data_to_excel(
             currInvNum, currInvDate, partyGSTIN, partyName, ttaxvallist)
         if resp:
+            # brings 'Cancel' button back to normal (was 'disabled' during modification)
             button_5['state'] = 'normal'
+            # show message that bill was added, and ask if user wants to enter another bill
             moreCond = messagebox._show(
                 'Success!', 'Bill has been added successfully. Do you want to enter another bill?', _icon='info', _type=messagebox.YESNO)
             if moreCond.lower() in ('yes', 'y'):
+                # if user wants to add another bill
+                # instead of placing whole page again, just reset the entry boxes
                 entry_5.delete('0', 'end')
                 entry_6.delete('0', 'end')
                 entry_7.delete('0', 'end')
@@ -694,11 +1078,15 @@ def addNewInvoice(modify=False, reset=False, sale=True):
                 entry_16.insert('0', '0.00')
                 entry_13.delete('0', 'end')
                 entry_13.insert('0', '0.00')
+                # getting new inv no. and date
                 respNumDate = addNewInvoice(reset=True)
                 entry_5.insert('0', respNumDate[0])
                 entry_6.insert('0', respNumDate[1])
             else:
+                # going back to menu screen
                 back_to_menu(frame_3, sale=sale)
+    
+    # designing
     button_6 = tk.Button(frame_16)
     button_6.config(text='Proceed', command=check_valid_newInvoice_input)
     button_6.pack(padx='10', side='top')
@@ -712,6 +1100,13 @@ def addNewInvoice(modify=False, reset=False, sale=True):
 
 
 def deleteInvoice(invNums, sale = True):
+    '''
+    Function responsible for deleting invoice(s)
+    
+    invNums : str
+        string containing multiple invoice numbers to be deleted, separated by comma (',')
+        eg: '1, 2, 3'
+    '''
     confirmresp = messagebox._show('Warning!', 'Invoices with following Invoice Numbers will be deleted: \n{}\n Are you sure?'.format(
         invNums), _icon='warning', _type=messagebox.YESNO)
     if confirmresp.lower() not in ('yes', 'y'):
@@ -741,7 +1136,18 @@ def deleteInvoice(invNums, sale = True):
 
 
 def exportInvoices():
+    '''
+    Function responsible for exporting data from CSV file to JSON file to upload to GST Portal
+    
+    Generates a JSON file with name 'export-json-{Company Name}-{Selected Month}-GSTR1-{QTR/MON}.json'
+    in the directory 'export/' in the current folder
+    '''
     def summarizeCSV(selMonth):
+        '''
+        Function responsible for reading data from CSV file of month passed as argument, and 
+        segregates the data into B2B and B2CS Invoices
+        '''
+        # Opening the CSV file
         csvFileIn = open(
             os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName, selMonth), newline='')
         csvFileReader = list(csv.reader(csvFileIn))
@@ -749,7 +1155,7 @@ def exportInvoices():
         b2bdata = []
         b2cs = {}
         taxRate = ['0', '5', '12', '18', '28']
-
+        # segregating data
         for item in csvFileReader:
             if is_GSTIN(item[0]):
                 b2bdata.append(item)
@@ -759,26 +1165,21 @@ def exportInvoices():
                 b2cs[item[0]][taxRate.index(item[7])] += round(float(item[8]), 2)
         csvFileIn.close()
         return b2bdata, b2cs
-    '''
-    TODO - done implementing
-    - ask for count of credit, debit notes, etc
-    - find count of invoices from start to stop
-    
-    new TODO
-    - ask if company is Quarterly or Monthly
-    - export accordingly
-    '''
+
+    # ask user if filing frequency for GSTR1 is Quarterly or Monthly
     respFreq = messagebox.askyesno('Export as JSON', '{}\n{} - Quarterly or Monthly?\nQuarterly - Select Yes\nMonthly - Select No'.format(cName, sMonth))
     
     #initialising JSON data
     finalJSON = {}
     finalJSON['gstin'] = companyGSTIN
     finalJSON['fp'] = sMonth.replace('-', '')
-        
+    
+    # creating message to ask for extra docs
     if respFreq and int(float(sMonth[:2]))%3 == 0:
         msgforextradocs = 'Enter count of docs (credit/debit notes, etc.)\nissued other than sale invoices entered here\nin this Quarter ending {} (0 for None)'.format(sMonth)
     elif not respFreq:
         msgforextradocs = 'Enter count of docs (credit/debit notes, etc.)\nissued other than sale invoices entered here\nfor current month {} (0 for None)'.format(sMonth)
+    
     
     if (respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq):
         extradocs = simpledialog.askstring('Export as JSON', msgforextradocs)
@@ -786,54 +1187,20 @@ def exportInvoices():
             extradocs = 0
     
     if ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and int(extradocs) >= 0:
+    
         if (not respFreq):
             currmondata = get_current_month_summary(sale=True)
             global pastInvoices
             pastInvoices.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
-            invEndPoints = pastInvoices[0], pastInvoices[-1]
-            
-            respFinalCall = messagebox.askyesno('Docs Count','Invoices of selected {} start from\n{} and end on {}, Is this correct?'.format(
-                                'month' if not respFreq else 'quarter', *invEndPoints))
-            if not respFinalCall:
-                invEndPoints = (simpledialog.askstring('Count Correction','Enter Starting Invoice No.\n(Do not cancel)'), 
-                            simpledialog.askstring('Count Correction','Enter Ending Invoice No.\n(Do not cancel)'))
-            
-            invEndCounts = re.search('([0-9]+)$', invEndPoints[0]).groups()[0], re.search('([0-9]+)$', invEndPoints[1]).groups()[0]
-            totalInvIssued = int(currmondata[0])
-            totalInvCounted = int(invEndCounts[1]) - int(invEndCounts[0]) + 1
-            
-            doc_issue = {
-                "doc_det": [
-            {
-                "doc_num": 1,
-                "docs": [
-                {
-                    "num": 1,
-                    "from": str(pastInvoices[0]),
-                    "to": str(pastInvoices[-1]),
-                    "totnum": totalInvCounted + int(extradocs),
-                    "cancel": totalInvCounted - totalInvIssued,
-                    "net_issue": totalInvIssued + int(extradocs)
-                }
-                ]
-            }]}
-            finalJSON['doc_issue'] = doc_issue
-            extramsgexport = '''\n
-    Export Summary:
-        Sale Invoices (other than cancelled) : {}
-        Docs Issued (including cancelled): {}
-        Docs Cancelled : {}
-        Net Docs Issued : {}'''.format(totalInvIssued, 
-                                        totalInvCounted + int(extradocs), 
-                                        totalInvCounted - totalInvIssued, 
-                                        totalInvIssued + int(extradocs))
-        elif (respFreq and int(float(sMonth[:2]))%3 == 0):
+        
+        elif int(float(sMonth[:2]))%3 == 0:
             def make_it_double(strnum):
                 strnum = str(strnum)
                 if len(strnum) == 2:
                     return str(strnum)
                 elif len(strnum) == 1:
                     return '0' + strnum
+                
             checkMonths = list(make_it_double(int(float(sMonth[:2])) - i)+str(sMonth[2:]) for i in range(3))
             
             totb2b, totb2cs = [], {}
@@ -851,50 +1218,48 @@ def exportInvoices():
             pastInvoices = (totb2b)
             b2cs = dict(totb2cs)
             
-            invEndPoints = pastInvoices[0], pastInvoices[-1]
-            
-            respFinalCall = messagebox.askyesno('Docs Count','Invoices of selected {} start from\n{} and end on {}, Is this correct?'.format(
-                                'month' if not respFreq else 'quarter', *invEndPoints))
-            if not respFinalCall:
-                invEndPoints = (simpledialog.askstring('Count Correction','Enter Starting Invoice No.\n(Do not cancel)'), 
-                            simpledialog.askstring('Count Correction','Enter Ending Invoice No.\n(Do not cancel)'))
-            
-            invEndCounts = re.search('([0-9]+)$', invEndPoints[0]).groups()[0], re.search('([0-9]+)$', invEndPoints[1]).groups()[0]
-            totalInvIssued = len(pastInvoices)
-            totalInvCounted = int(invEndCounts[1]) - int(invEndCounts[0]) + 1
-            
-            doc_issue = {
-                "doc_det": [
+        totalInvIssued = len(pastInvoices)    
+        invEndPoints = pastInvoices[0], pastInvoices[-1]
+        
+        respFinalCall = messagebox.askyesno('Docs Count','Invoices of selected {} start from\n{} and end on {}, Is this correct?'.format(
+                            'month' if not respFreq else 'quarter', *invEndPoints))
+        if not respFinalCall:
+            invEndPoints = (simpledialog.askstring('Count Correction','Enter Starting Invoice No.\n(Do not cancel)'), 
+                        simpledialog.askstring('Count Correction','Enter Ending Invoice No.\n(Do not cancel)'))
+        
+        invEndCounts = re.search('([0-9]+)$', invEndPoints[0]).groups()[0], re.search('([0-9]+)$', invEndPoints[1]).groups()[0]
+        totalInvCounted = int(invEndCounts[1]) - int(invEndCounts[0]) + 1
+        
+        doc_issue = {
+            "doc_det": [
+        {
+            "doc_num": 1,
+            "docs": [
             {
-                "doc_num": 1,
-                "docs": [
-                {
-                    "num": 1,
-                    "from": str(pastInvoices[0]),
-                    "to": str(pastInvoices[-1]),
-                    "totnum": totalInvCounted + int(extradocs),
-                    "cancel": totalInvCounted - totalInvIssued,
-                    "net_issue": totalInvIssued + int(extradocs)
-                }
-                ]
-            }]}
-            finalJSON['doc_issue'] = doc_issue
-            extramsgexport = '''\n
-    Export Summary:
-        Sale Invoices (other than cancelled) : {}
-        Docs Issued (including cancelled): {}
-        Docs Cancelled : {}
-        Net Docs Issued : {}'''.format(totalInvIssued, 
-                                        totalInvCounted + int(extradocs), 
-                                        totalInvCounted - totalInvIssued, 
-                                        totalInvIssued + int(extradocs))
+                "num": 1,
+                "from": str(pastInvoices[0]),
+                "to": str(pastInvoices[-1]),
+                "totnum": totalInvCounted + int(extradocs),
+                "cancel": totalInvCounted - totalInvIssued,
+                "net_issue": totalInvIssued + int(extradocs)
+            }
+            ]
+        }]}
+        finalJSON['doc_issue'] = doc_issue
+        extramsgexport = '''\n
+Export Summary:
+    Sale Invoices (other than cancelled) : {}
+    Docs Issued (including cancelled): {}
+    Docs Cancelled : {}
+    Net Docs Issued : {}'''.format(totalInvIssued, 
+                                    totalInvCounted + int(extradocs), 
+                                    totalInvCounted - totalInvIssued, 
+                                    totalInvIssued + int(extradocs))
             
-            
-        else:
-            extramsgexport = ''
     elif ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and extradocs == '-1':
         extramsgexport = ''
         pass
+        
     elif ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and extradocs == '-2':
         if (respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq):
             currmondata = get_current_month_summary(sale=True)
@@ -948,7 +1313,7 @@ def exportInvoices():
     except:
         b2bdata, b2cs = summarizeCSV(sMonth)
     else:
-        b2bdata, b2csnot = summarizeCSV(sMonth)
+        b2bdata = summarizeCSV(sMonth)[0]
     
     try:
         os.mkdir(os.getcwd()+'/export')
@@ -1093,6 +1458,88 @@ def exportInvoices():
                     'Success!', '''The invoices have been exported successfully, and JSON file is now present in "export" folder.{}'''.format(extramsgexport))
     return True
 
+def summaryPurchase():
+    '''
+    Function responsible for reading data from CSV files of Purchase, and showing sum total of Purchase Input
+    (For filling ITC data in GSTR3B Return)
+    '''
+    def summarizeCSV(selMonth):
+        '''
+        Function that returns summary of Purchase data of month passed
+        (similar to one used in exportInvoices() function)
+        '''
+        try:
+            csvFileIn = open(
+                os.getcwd()+'/companies/{}/{}/GSTR2.csv'.format(cName, selMonth), newline='')
+        except FileNotFoundError:
+            return False
+        csvFileReader = list(csv.reader(csvFileIn))
+        csvFileReader = csvFileReader[1:]
+        # totalITC is of form [taxable value, igst, cgst, cess]
+        totalITC = [0, 0, 0, 0]
+        '''
+        Just for reference:
+        
+        headerRow = ['GSTIN', 'Receiver Name', 'Invoice Number', 'Invoice Date', 'Invoice Value',
+                    'Place Of Supply', 'Invoice Type', 'Rate', 'Taxable Amount', 'Cess Amount']
+        '''
+        for item in csvFileReader:
+            totalITC[0] += float(item[8])
+            if item[0][:2] == companyGSTIN[:2]:
+                totalITC[2] += int(item[7])*float(item[8])/200
+            else:
+                totalITC[1] += int(item[7])*float(item[8])
+            totalITC[3] += float(item[9])
+            
+        csvFileIn.close()
+        return totalITC
+    
+    # asking the user if GSTR3B frequency is Monthly or Quarterly
+    respFreq = messagebox.askyesno('Purchase Summary for GSTR3B', '{}\n{} - Quarterly or Monthly?\nQuarterly - Select Yes\nMonthly - Select No'.format(cName, sMonth))
+
+    def make_it_double(strnum):
+        '''
+        Converts single digit month to double digit
+        
+        strnum : int or str
+        returns str, len(str) = 2
+        '''
+        strnum = str(strnum)
+        if len(strnum) == 2:
+            return str(strnum)
+        elif len(strnum) == 1:
+            return '0' + strnum
+    
+    if respFreq and int(sMonth[:2]) %3 == 0:
+        checkMonths = list(make_it_double(int(float(sMonth[:2])) - i)+str(sMonth[2:]) for i in range(3))
+    else:
+        checkMonths = [sMonth]
+    # tot_itc is of form [taxable value, igst, cgst, sgst, cess]
+    tot_itc = [0, 0, 0, 0]
+    
+    for item in checkMonths:
+        tempitc = summarizeCSV(item)
+        if not tempitc:
+            messagebox.showwarning('Data not complete', 'Purchase not available for {} in software.'.format(item))
+        else:
+            tot_itc = list((tot_itc[i] + tempitc[i]) for i in range(len(tot_itc)))
+    
+    tot_itc = list(round(i, 2) for i in tot_itc)
+
+    extramsgpursum = '''Purchase Summary (does NOT include data of months that were not found):
+        Total Taxable Amount : {}
+        Total IGST: {}
+        Total CGST : {}
+        Total SGST : {}
+        Total Cess : {}'''.format(*tot_itc[:3], tot_itc[2], tot_itc[3])
+    
+    messagebox.showinfo(
+        'Purchase Summary', extramsgpursum
+    )
+    return True
+    
+    
+
 def action_perform(todoAction, sale = True):
     if todoAction == 'Add New Invoice':
         addNewInvoice(sale=sale)
@@ -1118,13 +1565,17 @@ def action_perform(todoAction, sale = True):
         else:
             addNewInvoice(modify=invNumModify, sale=sale)
     elif todoAction == 'Export Invoices':
-        resp1 = messagebox._show(
-            'Are you sure?', 'The invoices will be exported. Are you sure you want to continue?', _icon='info', _type=messagebox.YESNO)
-        if resp1.lower() in ('yes', 'y'):
-            resp2 = exportInvoices()
-            if resp2:
+        if sale:
+            resp1 = messagebox._show(
+                'Are you sure?', 'The invoices will be exported. Are you sure you want to continue?', _icon='info', _type=messagebox.YESNO)
+            if resp1.lower() in ('yes', 'y'):
+                resp2 = exportInvoices()
+                if resp2:
+                    back_to_menu(sale=sale)
+            else:
                 back_to_menu(sale=sale)
         else:
+            resp2 = summaryPurchase()
             back_to_menu(sale=sale)
     elif todoAction == 'Backup Invoices':
         messagebox._show('Caution', 'The invoices of selected period will be uploaded to cloud.',
@@ -1339,7 +1790,8 @@ def screen2(sale = True):
     ]
     # if Import Extensions are present
     if importExtensionsFound:
-        extFound = importExtensions.ExtensionManager(companyGSTIN)
+        companyGSTINhashed = sha256(companyGSTIN.encode()).hexdigest()
+        extFound = importExtensions.ExtensionManager(companyGSTINhashed)
         if extFound:
             validActions.append('Import Invoices')
     
