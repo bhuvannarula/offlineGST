@@ -1184,25 +1184,29 @@ def exportInvoices():
     
     
     if (respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq):
+        # if quarter-end or monthly
         extradocs = simpledialog.askstring('Export as JSON', msgforextradocs)
         if extradocs in ('', None):
             extradocs = 0
     
     if ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and int(extradocs) >= 0:
-    
+        # if quarter-end or monthly and int(extradocs) >= 0
         if (not respFreq):
-            currmondata = get_current_month_summary(sale=True)
+            # if monthly
+            currmondata = get_current_month_summary(sale=True) # updates pastInvoices variable
             global pastInvoices
             pastInvoices.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
         
         elif int(float(sMonth[:2]))%3 == 0:
+            # if month end
             def make_it_double(strnum):
                 strnum = str(strnum)
                 if len(strnum) == 2:
                     return str(strnum)
                 elif len(strnum) == 1:
                     return '0' + strnum
-                
+            
+            # checkMonths is list containing all 3 months of quarter (if quarterly)
             checkMonths = list(make_it_double(int(float(sMonth[:2])) - i)+str(sMonth[2:]) for i in range(3))
             
             totb2b, totb2cs = [], {}
@@ -1219,7 +1223,8 @@ def exportInvoices():
             totb2b.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
             pastInvoices = (totb2b)
             b2cs = dict(totb2cs)
-            
+        
+        # difficult to explain part, it just enters details of documents into JSON
         totalInvIssued = len(pastInvoices)    
         invEndPoints = pastInvoices[0], pastInvoices[-1]
         
@@ -1490,7 +1495,7 @@ def summaryPurchase():
             if item[0][:2] == companyGSTIN[:2]:
                 totalITC[2] += int(item[7])*float(item[8])/200
             else:
-                totalITC[1] += int(item[7])*float(item[8])
+                totalITC[1] += int(item[7])*float(item[8])/100
             totalITC[3] += float(item[9])
             
         csvFileIn.close()
