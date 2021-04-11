@@ -45,7 +45,7 @@ Global Variables (User should change only these if necessary):
         False if not
 '''
 path_to_server_script = 'https://bhuvannarula.cf/offlinegst/cgi-bin/serverBackupScript.py'
-auto_update = False
+auto_update = True
 auto_update_extensions = True
 enableExtensions = True
 
@@ -238,10 +238,12 @@ def check_GSTIN(GSTIN):
     # GSTIN pattern matching to reduce API use
     if not is_GSTIN(GSTIN):
         return False
+    # creating browser instance
+    brows = PoolManager()
     # Opening this URL returns a JSON response containing data corresponding to the GSTIN
-    webopener = request.urlopen(
+    webopener = brows.urlopen('GET',
         'https://cleartax.in/f/compliance-report/{}/'.format(GSTIN))
-    response_gstin_tradename = json.loads(webopener.read())
+    response_gstin_tradename = json.loads(webopener.data)
     try:
         # Following value can be fetched only if GSTIN was correct and response was correctly received
         response_gstin_tradename = response_gstin_tradename['taxpayerInfo']['tradeNam']
