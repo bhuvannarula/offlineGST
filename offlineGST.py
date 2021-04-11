@@ -783,7 +783,7 @@ def addNewInvoice(modify=False, reset=False, sale=True):
             # dd/mm/yyyy is represented as '%d/%m/%Y'
             # incrementing date using datetime module
             old_date = datetime.strptime(strInvDate, '%d/%m/%Y')
-            old_date.day += timedelta(days = 1)
+            old_date += timedelta(days = 1)
             new_date = old_date.strftime('%d/%m/%Y')
             currInvDate.set(new_date)
             entry_6.delete('0', 'end')
@@ -1182,7 +1182,7 @@ def exportInvoices():
     elif not respFreq:
         msgforextradocs = 'Enter count of docs (credit/debit notes, etc.)\nissued other than sale invoices entered here\nfor current month {} (0 for None)'.format(sMonth)
     
-    
+    # difficult to explain part, it just enters details of documents into JSON
     if (respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq):
         # if quarter-end or monthly
         extradocs = simpledialog.askstring('Export as JSON', msgforextradocs)
@@ -1224,7 +1224,6 @@ def exportInvoices():
             pastInvoices = (totb2b)
             b2cs = dict(totb2cs)
         
-        # difficult to explain part, it just enters details of documents into JSON
         totalInvIssued = len(pastInvoices)    
         invEndPoints = pastInvoices[0], pastInvoices[-1]
         
@@ -1313,8 +1312,9 @@ Export Summary:
         pass
         
         
-    #summarising gstr1 csv data
+    #summarising GSTR1 CSV data
     try:
+        # for quarterly return, b2cs has already been generated
         if b2cs:
             pass
     except:
@@ -1322,6 +1322,7 @@ Export Summary:
     else:
         b2bdata = summarizeCSV(sMonth)[0]
     
+    # creating 'export/' directory
     try:
         os.mkdir(os.getcwd()+'/export')
     except:
@@ -1455,12 +1456,14 @@ Export Summary:
     finalJSON['hash'] = 'hash'
     finalJSON['version'] = 'GST1.00'
 
+    # dump the finalJSON dict into JSON file
     JSONfile = open(
         os.getcwd()+'/export/export-json-{}-{}-GSTR1-{}.json'.format(
             cName, sMonth, 'QTR' if respFreq else 'MON'), 'w')
     json.dump(finalJSON, JSONfile)
     JSONfile.close()
 
+    # show msg to user that export was successful, along with 'extramsgexport' string
     messagebox.showinfo(
                     'Success!', '''The invoices have been exported successfully, and JSON file is now present in "export" folder.{}'''.format(extramsgexport))
     return True
@@ -1499,7 +1502,10 @@ def summaryPurchase():
             totalITC[3] += float(item[9])
             
         csvFileIn.close()
-        return totalITC
+        if int(sum(totalITC)) == 0:
+            return False
+        else:
+            return totalITC
     
     # asking the user if GSTR3B frequency is Monthly or Quarterly
     respFreq = messagebox.askyesno('Purchase Summary for GSTR3B', '{}\n{} - Quarterly or Monthly?\nQuarterly - Select Yes\nMonthly - Select No'.format(cName, sMonth))
@@ -1517,6 +1523,7 @@ def summaryPurchase():
         elif len(strnum) == 1:
             return '0' + strnum
     
+    # if quarterly and month-end
     if respFreq and int(sMonth[:2]) %3 == 0:
         checkMonths = list(make_it_double(int(float(sMonth[:2])) - i)+str(sMonth[2:]) for i in range(3))
     else:
@@ -1527,12 +1534,14 @@ def summaryPurchase():
     for item in checkMonths:
         tempitc = summarizeCSV(item)
         if not tempitc:
-            messagebox.showwarning('Data not complete', 'Purchase not available for {} in software.'.format(item))
+            # if GSTR2 file is empty / does not exist
+            messagebox.showwarning('Data not complete', 'Purchase not available / NIL for {} in software.'.format(item))
         else:
             tot_itc = list((tot_itc[i] + tempitc[i]) for i in range(len(tot_itc)))
     
     tot_itc = list(round(i, 2) for i in tot_itc)
 
+    # create summary message
     extramsgpursum = '''Purchase Summary (does NOT include data of months that were not found):
         Total Taxable Amount : {}
         Total IGST: {}
@@ -1540,6 +1549,7 @@ def summaryPurchase():
         Total SGST : {}
         Total Cess : {}'''.format(*tot_itc[:3], tot_itc[2], tot_itc[3])
     
+    # show the message
     messagebox.showinfo(
         'Purchase Summary', extramsgpursum
     )
@@ -1548,37 +1558,58 @@ def summaryPurchase():
     
 
 def action_perform(todoAction, sale = True):
+    '''
+    Function that calls function according to the option selected in Menu Screen - passed to this
+    function through todoAction
+    
+    todoAction : str
+        string containing action that needs to be performed
+    '''
     if todoAction == 'Add New Invoice':
         addNewInvoice(sale=sale)
+        
     elif todoAction == 'Delete Invoice(s)':
+        # ask user the invoice nums to be deleted
         invNums = simpledialog.askstring(
             'Delete Invoice(s)', 'Enter Invoice Numbers of Invoices to be deleted, separated by "," like 100,200,300')
         if not invNums in ('', None, 'None'):
+            # call the function
             deleteInvoice(invNums, sale=sale)
         back_to_menu(sale=sale)
+        
     elif todoAction == 'Modify Invoice':
+        # loop works until an invoice number is found which is previously present
         while True:
             invNumModify = simpledialog.askstring(
                 'Modify Invoice', 'Enter Invoice Number of Invoice to be modified:')
             if invNumModify == None:
+                # if user does not wants to continue (blank response)
                 break
             elif invNumModify not in pastInvoices:
+                # inform user that entered inv no. was not found
                 invNumModify = simpledialog.askstring(
                     'Not Found!', 'Invoice Number entered is not present. Please enter correct number.')
             else:
                 break
         if invNumModify == None:
+            # if user does not wants to continue (blank response)
             back_to_menu(sale=sale)
         else:
+            # call the function
             addNewInvoice(modify=invNumModify, sale=sale)
+            
     elif todoAction == 'Export Invoices':
         if sale:
+            # confirm if user wants to continue
             resp1 = messagebox._show(
                 'Are you sure?', 'The invoices will be exported. Are you sure you want to continue?', _icon='info', _type=messagebox.YESNO)
             if resp1.lower() in ('yes', 'y'):
+                # call the function
                 resp2 = exportInvoices()
                 if resp2:
+                    # if exported successfully
                     back_to_menu(sale=sale)
+                # if not, program hangs and user needs to restart
             else:
                 back_to_menu(sale=sale)
         else:
