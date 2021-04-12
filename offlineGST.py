@@ -1590,7 +1590,7 @@ def action_perform(todoAction, sale = True):
     elif todoAction == 'Delete Invoice(s)':
         # ask user the invoice nums to be deleted
         invNums = simpledialog.askstring(
-            'Delete Invoice(s)', 'Enter Invoice Numbers of Invoices to be deleted, separated by "," like 100,200,300')
+            'Delete Invoice(s)', 'Enter Invoice Numbers of Invoices\n to be deleted, separated by ","\n like 100,200,300')
         if not invNums in ('', None, 'None'):
             # call the function
             deleteInvoice(invNums, sale=sale)
