@@ -1100,6 +1100,9 @@ def addNewInvoice(modify=False, reset=False, sale=True):
                 respNumDate = addNewInvoice(reset=True)
                 entry_5.insert('0', respNumDate[0])
                 entry_6.insert('0', respNumDate[1])
+                if modify:
+                    # change heading back to normal
+                    label_13.config(text='Add New Invoice: ({} Invoice)'.format('Sale' if sale else 'Purchase'))
             else:
                 # going back to menu screen
                 back_to_menu(frame_3, sale=sale)
