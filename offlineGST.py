@@ -567,7 +567,7 @@ def get_current_month_summary(sale=True):
         print(sum(invCount), len(set(pastInvoices)))
         raise UserWarning('Something is very wrong')
     # add count of invoices
-    data_summary[0] = 'Reg - {}, Unreg - {}'.format(*invCount)
+    data_summary[0] = 'B2B - {}, B2C - {}'.format(*invCount)
     # Round the values in data_summary to 2 decimal places
     for i in range(1,len(data_summary)):
         data_summary[i] = round(data_summary[i],2)
