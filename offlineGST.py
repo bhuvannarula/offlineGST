@@ -434,6 +434,7 @@ def registerNewUserCloud(username, password, path_to_server_script=path_to_serve
                                               'wizardspell': password}
                                       )
     # Check if registration was successful
+    print(str(registerRequest.data))
     if 'Successful' in str(registerRequest.data[:-1].decode('utf-8')):
         return True
     else:
@@ -504,9 +505,16 @@ def restoreMain(companyName, filingPeriod, hashed=False, username=None, password
     # add the header row
     csvFinalWriter.writerow(headerRow)
     # write remining data to CSV file
+    tempdatadict = {}
+    for item in dataRec:
+        if item[2] not in tempdatadict:
+            tempdatadict[item[2]] = float(item[4])
+        else:
+            tempdatadict[item[2]] += float(item[4])
     for item in dataRec:
         item2 = list(item)
         # derive Place of Supply from GSTIN column
+        item2[4] = str(round(tempdatadict[item[2]], 2))
         item2[5] = get_placeofsupply(item2[5])
         csvFinalWriter.writerow(item2)
     fileOUT.close()
@@ -1169,8 +1177,12 @@ def exportInvoices():
         segregates the data into B2B and B2CS Invoices
         '''
         # Opening the CSV file
-        csvFileIn = open(
-            os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName, selMonth), newline='')
+        try:
+            csvFileIn = open(
+                os.getcwd()+'/companies/{}/{}/GSTR1.csv'.format(cName, selMonth), newline='')
+        except:
+            # if month does not exist
+            return '', selMonth
         csvFileReader = list(csv.reader(csvFileIn))
         csvFileReader = csvFileReader[1:]
         b2bdata = []
@@ -1185,6 +1197,9 @@ def exportInvoices():
                     b2cs[item[0]] = [0, 0, 0, 0, 0]
                 b2cs[item[0]][taxRate.index(item[7])] += round(float(item[8]), 2)
         csvFileIn.close()
+        if len(b2bdata) == 0 and len(b2cs) == 0:
+            # If no data present in month
+            return '', selMonth
         return b2bdata, b2cs
 
     # ask user if filing frequency for GSTR1 is Quarterly or Monthly
@@ -1229,8 +1244,12 @@ def exportInvoices():
             checkMonths = list(make_it_double(int(float(sMonth[:2])) - i)+str(sMonth[2:]) for i in range(3))
             
             totb2b, totb2cs = [], {}
+            monthNotFound = []
             for iMonth in checkMonths:
                 tempb2b, tempb2cs = summarizeCSV(iMonth)
+                if tempb2b == '':
+                    monthNotFound.append(tempb2cs)
+                    continue
                 totb2b.extend(tempb2b)
                 for item in tempb2cs:
                     if item in totb2cs:
@@ -1238,9 +1257,16 @@ def exportInvoices():
                             totb2cs[item][irate] += float(tempb2cs[item][irate])
                     else:
                         totb2cs[item] = tempb2cs[item]
+            if monthNotFound:
+                respCont = messagebox.askyesno('Data not complete', 
+                    'Following months have no data\navailable in software.\nDo you still want to proceed?\n{}'.format(', '.join(monthNotFound)),
+                    icon = messagebox.WARNING)
+                if not respCont:
+                    return True
+            
             totb2b = list(i[2] for i in totb2b)
             totb2b.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
-            pastInvoices = (totb2b)
+            pastInvoices = list(set(totb2b))
             b2cs = dict(totb2cs)
         
         totalInvIssued = len(pastInvoices)    
@@ -1414,7 +1440,10 @@ Export Summary:
     masterb2cs = []
     for i in range(Qcond,1,1):
         newMonth = sMonth[0] + str(int(sMonth[1]) + i) + sMonth[2:]
-        b2cs = summarizeCSV(newMonth)[-1]
+        tempdat = summarizeCSV(newMonth)
+        if tempdat[0] == '':
+            continue
+        b2cs = tempdat[-1]
         b2csfinaldata = []
         rateList = [0, 5, 12, 18, 28]
         for i in b2cs:
