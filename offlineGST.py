@@ -43,6 +43,9 @@ Global Variables (User should change only these if necessary):
     enableExtensions : bool
         True if extensions are to be enabled
         False if not
+        
+Note : DISABLE auto-update if changing any of the variables mentioned above.
+Updating the utility WILL change them back to TRUE.
 '''
 path_to_server_script = 'https://bhuvannarula.cf/offlinegst/cgi-bin/serverBackupScript.py'
 auto_update = True
