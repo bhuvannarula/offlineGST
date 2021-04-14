@@ -6,7 +6,6 @@ import os
 import re
 from functools import partial
 from shutil import rmtree
-from urllib import request
 import json
 import csv
 from datetime import datetime, timedelta
