@@ -1856,7 +1856,8 @@ def action_perform(todoAction, sale = True):
                         'Success', 'Data was successfully downloaded from cloud and is available in offline utility.')
                     back_to_menu(sale=sale)
     elif todoAction == 'Import Invoices':
-        importExtensions.ExtensionExecuter(companyGSTIN, cName, sMonth, sale)
+        companyGSTINhashed = sha256(companyGSTIN.encode()).hexdigest()
+        importExtensions.ExtensionExecuter(companyGSTINhashed, cName, sMonth, sale)
         back_to_menu(sale=sale)
 
 def screen2(sale = True):
