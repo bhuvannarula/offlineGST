@@ -1394,7 +1394,7 @@ Export Summary:
         b2bObject[-1]['inv'] = []
         for invNum in b2bfinaldata[gstin]:
             tempBill = {}
-            tempBill['inum'] = str(invNum)
+            tempBill['inum'] = rf'{invNum}'
             tempBill['idt'] = b2bfinaldata[gstin][invNum][0].replace('/', '-')
             tempBill['pos'] = gstin[:2]
             tempBill['rchrg'] = 'N'
@@ -1508,8 +1508,13 @@ Export Summary:
     # dump the finalJSON dict into JSON file
     JSONfile = open(
         os.getcwd()+'/export/export-json-{}-{}-GSTR1-{}.json'.format(
-            cName, sMonth, 'QTR' if respFreq else 'MON'), 'w')
-    json.dump(finalJSON, JSONfile)
+            cName, sMonth, 'QTR' if respFreq else 'MON'), 'w+')
+    json.dump(finalJSON, JSONfile, ensure_ascii= True)
+    JSONfile.seek(0)
+    datatempIn = JSONfile.read().replace(r'\\', '\\')
+    JSONfile.seek(0)
+    JSONfile.truncate()
+    JSONfile.write(datatempIn)
     JSONfile.close()
 
     # show msg to user that export was successful, along with 'extramsgexport' string
