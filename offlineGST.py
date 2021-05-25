@@ -4,7 +4,6 @@ from tkinter import simpledialog
 from tkinter import ttk
 import os
 import re
-from functools import partial
 from shutil import rmtree
 import json
 import csv
@@ -2112,8 +2111,7 @@ def createCompany():
     
     
     button_1_2 = tk.Button(frame_1_2)
-    button_1_2.config(text='Continue', command=partial(
-        createCompDir, compName, compGSTIN))
+    button_1_2.config(text='Continue', command=lambda : createCompDir(compName, compGSTIN))
     button_1_2.pack(anchor='w', pady='10', side='top')
     button_3 = tk.Button(frame_1_2)
     button_3.config(text='Back', command=lambda: back_to_homescreen(frame_1_2))
@@ -2246,7 +2244,7 @@ def screen1():
     button_1 = tk.Button(frame_1)
     button_1.config(text='Continue')
     button_1.pack(anchor='w', side='top')
-    button_1.configure(command=partial(openMainMenu, optionVar, selectedMonth, optionVarSale))
+    button_1.configure(command=lambda : openMainMenu(optionVar, selectedMonth, optionVarSale))
     button_2 = tk.Button(frame_1)
     button_2.config(text='Create New Company', command=createCompany0)
     button_2.pack(anchor='w', side='top')
