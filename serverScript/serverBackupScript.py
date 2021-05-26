@@ -49,7 +49,7 @@ def create_newuser_table(tableName, cursored):
                         inv_date CHAR(10) NOT NULL,
                         inv_rate VARCHAR(2) NOT NULL,
                         inv_taxbl VARCHAR(10) NOT NULL,
-                        PRIMARY KEY(inv_no,inv_rate)
+                        PRIMARY KEY(work_company_gstin, inv_no, inv_rate)
                     )
                     '''.format(tableName))
     return list(i for i in cursored)
