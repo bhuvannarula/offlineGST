@@ -559,10 +559,10 @@ def get_current_month_summary(sale=True):
                 invCount[0] += 1
             elif len(item[0]) == 2:
                 invCount[1] += 1
-        # add invoice number to pastInvoices
-        pastInvoices.append(item[2])
-        # add invoice no. : date to dict
-        invoiceNumDateDict[item[2]] = item[3]
+            # add invoice number to pastInvoices
+            pastInvoices.append(item[2])
+            # add invoice no. : date to dict
+            invoiceNumDateDict[item[2]] = item[3]
         # add data to data_summary
         data_summary[1] += round(float(item[8]), 2)
         if item[0][:2] == companyGSTIN[:2]:
