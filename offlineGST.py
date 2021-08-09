@@ -152,15 +152,15 @@ def check_for_update():
         # Any other time code checks for updates
         return False
     exten_updated = False
-    if auto_update_extensions and enableExtensions:
+    if auto_update and auto_update_extensions and enableExtensions:
         if importExtensionsFound:
             resp = importExtensions.ExtensionUpdater()
             # resp = True if any extension was updated, else False
             exten_updated = resp
-    if not auto_update and not exten_updated:
+    if not auto_update:
         # If auto_update disabled, and no extension was updated
         return False
-    elif not auto_update:
+    elif exten_updated:
         # If auto_update disabled but an extension was updated
         # Shows a pop-up that update was installed, and closes the tkinter window (so that software is restarted)
         messagebox.showinfo(
