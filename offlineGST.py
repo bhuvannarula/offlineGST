@@ -1249,9 +1249,11 @@ def exportInvoices():
             totb2b.extend(tempb2b)
             for item in tempb2cs:
                 if item in totb2cs:
+                    print(1)
                     for irate in range(5):
                         totb2cs[item][irate] += float(tempb2cs[item][irate])
                 else:
+                    print(2)
                     totb2cs[item] = tempb2cs[item]
         if monthNotFound:
             respCont = messagebox.askyesno('Data not complete', 
@@ -1264,6 +1266,7 @@ def exportInvoices():
         totb2b.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
         pastInvoices = list(set(totb2b))
         b2cs = dict(totb2cs)
+        print(b2cs)
 
     if ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and int(extradocs) >= 0:
         # if quarter-end or monthly and int(extradocs) >= 0
