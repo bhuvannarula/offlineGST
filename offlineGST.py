@@ -1248,6 +1248,7 @@ def exportInvoices():
             monthNotFound = []
             for iMonth in checkMonths:
                 tempb2b, tempb2cs = summarizeCSV(iMonth)
+                print(iMonth, tempb2b, tempb2cs)
                 if tempb2b == '':
                     monthNotFound.append(tempb2cs)
                     continue
