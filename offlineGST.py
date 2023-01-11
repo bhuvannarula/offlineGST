@@ -1254,7 +1254,7 @@ def exportInvoices():
                         totb2cs[item][irate] += float(tempb2cs[item][irate])
                 else:
                     print(2)
-                    totb2cs[item] = tempb2cs[item]
+                    totb2cs[item] = list(tempb2cs[item])
         if monthNotFound:
             respCont = messagebox.askyesno('Data not complete', 
                 'Following months have no data\navailable in software.\nDo you still want to proceed?\n{}'.format(', '.join(monthNotFound)),
