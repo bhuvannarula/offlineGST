@@ -1226,7 +1226,7 @@ def exportInvoices():
 
     global pastInvoices
 
-    if int(float(sMonth[:2]))%3 == 0:
+    if respFreq and int(float(sMonth[:2]))%3 == 0:
         # if month end
         def make_it_double(strnum):
             strnum = str(strnum)
@@ -1242,7 +1242,6 @@ def exportInvoices():
         monthNotFound = []
         for iMonth in checkMonths:
             tempb2b, tempb2cs = summarizeCSV(iMonth)
-            print(iMonth, tempb2b, tempb2cs)
             if tempb2b == '':
                 monthNotFound.append(tempb2cs)
                 continue
@@ -1266,7 +1265,6 @@ def exportInvoices():
         totb2b.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
         pastInvoices = list(set(totb2b))
         b2cs = dict(totb2cs)
-        print(b2cs)
 
     if ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and int(extradocs) >= 0:
         # if quarter-end or monthly and int(extradocs) >= 0
@@ -1443,44 +1441,46 @@ Export Summary:
         Qcond = 0
         
     masterb2cs = []
+    '''    
     for i in range(Qcond,1,1):
-        newMonth = sMonth[0] + str(int(sMonth[1]) + i) + sMonth[2:]
-        tempdat = summarizeCSV(newMonth)
-        if tempdat[0] == '':
-            continue
-        b2cs = tempdat[-1]
-        b2csfinaldata = []
-        rateList = [0, 5, 12, 18, 28]
-        for i in b2cs:
-            for j in range(len(b2cs[i])):
-                if i == companyGSTIN[:2]:
-                    if int(b2cs[i][j]) == 0:
-                        continue
-                    temprecord = {}
-                    temprecord['sply_ty'] = 'INTRA'
-                    temprecord['txval'] = round(b2cs[i][j],2)
-                    temprecord['typ'] = 'OE'
-                    temprecord['pos'] = i
-                    temprecord['rt'] = rateList[j]
-                    temprecord['iamt'] = 0
-                    temprecord['camt'] = round(b2cs[i][j]*rateList[j]/200,2)
-                    temprecord['samt'] = round(temprecord['camt'],2)
-                    temprecord['csamt'] = 0
-                else:
-                    if int(b2cs[i][j]) == 0:
-                        continue
-                    temprecord = {}
-                    temprecord['sply_ty'] = 'INTER'
-                    temprecord['txval'] = round(b2cs[i][j],2)
-                    temprecord['typ'] = 'OE'
-                    temprecord['pos'] = i
-                    temprecord['rt'] = rateList[j]
-                    temprecord['iamt'] = round(b2cs[i][j]*rateList[j]/100,2)
-                    temprecord['camt'] = 0
-                    temprecord['samt'] = 0
-                    temprecord['csamt'] = 0
-                b2csfinaldata.append(temprecord)
-        masterb2cs.append(b2csfinaldata)
+    newMonth = sMonth[0] + str(int(sMonth[1]) + i) + sMonth[2:]
+    tempdat = summarizeCSV(newMonth)
+    if tempdat[0] == '':
+        continue
+    b2cs = tempdat[-1]
+    '''
+    b2csfinaldata = []
+    rateList = [0, 5, 12, 18, 28]
+    for i in b2cs:
+        for j in range(len(b2cs[i])):
+            if i == companyGSTIN[:2]:
+                if int(b2cs[i][j]) == 0:
+                    continue
+                temprecord = {}
+                temprecord['sply_ty'] = 'INTRA'
+                temprecord['txval'] = round(b2cs[i][j],2)
+                temprecord['typ'] = 'OE'
+                temprecord['pos'] = i
+                temprecord['rt'] = rateList[j]
+                temprecord['iamt'] = 0
+                temprecord['camt'] = round(b2cs[i][j]*rateList[j]/200,2)
+                temprecord['samt'] = round(temprecord['camt'],2)
+                temprecord['csamt'] = 0
+            else:
+                if int(b2cs[i][j]) == 0:
+                    continue
+                temprecord = {}
+                temprecord['sply_ty'] = 'INTER'
+                temprecord['txval'] = round(b2cs[i][j],2)
+                temprecord['typ'] = 'OE'
+                temprecord['pos'] = i
+                temprecord['rt'] = rateList[j]
+                temprecord['iamt'] = round(b2cs[i][j]*rateList[j]/100,2)
+                temprecord['camt'] = 0
+                temprecord['samt'] = 0
+                temprecord['csamt'] = 0
+            b2csfinaldata.append(temprecord)
+    masterb2cs.append(b2csfinaldata)
 
     def getPOSrate(datadict):
         return datadict['pos'], datadict['rt']
@@ -1489,6 +1489,7 @@ Export Summary:
             datadict1[kk] = round(datadict1[kk] + datadict2[kk], 2)
         return datadict1
     
+    '''
     if masterb2cs:
         b2csfinaldata = masterb2cs[0]
         masterb2cssum1 = list(getPOSrate(i) for i in masterb2cs[0])
@@ -1502,6 +1503,8 @@ Export Summary:
                         masterb2cssum1.append(getPOSrate(item))
     else:
         b2csfinaldata = []
+    '''
+    b2csfinaldata = masterb2cs[0]
     # b2cs to json ends here
     if b2csfinaldata != []:
         finalJSON['b2cs'] = b2csfinaldata
