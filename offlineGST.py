@@ -1223,53 +1223,53 @@ def exportInvoices():
         extradocs = simpledialog.askstring('Export as JSON', msgforextradocs)
         if extradocs in ('', None):
             extradocs = 0
-    
+
+    global pastInvoices
+
+    if int(float(sMonth[:2]))%3 == 0:
+        # if month end
+        def make_it_double(strnum):
+            strnum = str(strnum)
+            if len(strnum) == 2:
+                return str(strnum)
+            elif len(strnum) == 1:
+                return '0' + strnum
+        
+        # checkMonths is list containing all 3 months of quarter (if quarterly)
+        checkMonths = list(make_it_double(int(float(sMonth[:2])) - i)+str(sMonth[2:]) for i in range(3))
+        
+        totb2b, totb2cs = [], {}
+        monthNotFound = []
+        for iMonth in checkMonths:
+            tempb2b, tempb2cs = summarizeCSV(iMonth)
+            if tempb2b == '':
+                monthNotFound.append(tempb2cs)
+                continue
+            totb2b.extend(tempb2b)
+            for item in tempb2cs:
+                if item in totb2cs:
+                    for irate in range(5):
+                        totb2cs[item][irate] += float(tempb2cs[item][irate])
+                else:
+                    totb2cs[item] = tempb2cs[item]
+        if monthNotFound:
+            respCont = messagebox.askyesno('Data not complete', 
+                'Following months have no data\navailable in software.\nDo you still want to proceed?\n{}'.format(', '.join(monthNotFound)),
+                icon = messagebox.WARNING)
+            if not respCont:
+                return True
+        
+        totb2b = list(i[2] for i in totb2b)
+        totb2b.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
+        pastInvoices = list(set(totb2b))
+        b2cs = dict(totb2cs)
+
     if ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and int(extradocs) >= 0:
         # if quarter-end or monthly and int(extradocs) >= 0
         if (not respFreq):
             # if monthly
             currmondata = get_current_month_summary(sale=True) # updates pastInvoices variable
-            global pastInvoices
             pastInvoices.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
-        
-        elif int(float(sMonth[:2]))%3 == 0:
-            # if month end
-            def make_it_double(strnum):
-                strnum = str(strnum)
-                if len(strnum) == 2:
-                    return str(strnum)
-                elif len(strnum) == 1:
-                    return '0' + strnum
-            
-            # checkMonths is list containing all 3 months of quarter (if quarterly)
-            checkMonths = list(make_it_double(int(float(sMonth[:2])) - i)+str(sMonth[2:]) for i in range(3))
-            
-            totb2b, totb2cs = [], {}
-            monthNotFound = []
-            for iMonth in checkMonths:
-                tempb2b, tempb2cs = summarizeCSV(iMonth)
-                print(iMonth, tempb2b, tempb2cs)
-                if tempb2b == '':
-                    monthNotFound.append(tempb2cs)
-                    continue
-                totb2b.extend(tempb2b)
-                for item in tempb2cs:
-                    if item in totb2cs:
-                        for irate in range(5):
-                            totb2cs[item][irate] += float(tempb2cs[item][irate])
-                    else:
-                        totb2cs[item] = tempb2cs[item]
-            if monthNotFound:
-                respCont = messagebox.askyesno('Data not complete', 
-                    'Following months have no data\navailable in software.\nDo you still want to proceed?\n{}'.format(', '.join(monthNotFound)),
-                    icon = messagebox.WARNING)
-                if not respCont:
-                    return True
-            
-            totb2b = list(i[2] for i in totb2b)
-            totb2b.sort(reverse=False, key=lambda varr : int(float(re.search('([0-9]+)$',varr).groups()[0])))
-            pastInvoices = list(set(totb2b))
-            b2cs = dict(totb2cs)
         
         totalInvIssued = len(pastInvoices)    
         invEndPoints = pastInvoices[0], pastInvoices[-1]
@@ -1311,7 +1311,6 @@ Export Summary:
             
     elif ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and extradocs == '-1':
         extramsgexport = ''
-        pass
         
     elif ((respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq)) and extradocs == '-2':
         if (respFreq and int(float(sMonth[:2]))%3 == 0) or (not respFreq):
